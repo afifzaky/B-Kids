@@ -7,6 +7,13 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 // Modules
 import authRoutes from './modules/auth/auth.routes';
+import familyRoutes from './modules/family/family.routes';
+import pocketsRoutes from './modules/pockets/pockets.routes';
+import choresRoutes from './modules/chores/chores.routes';
+import limitsRoutes from './modules/limits/limits.routes';
+import infaqRoutes from './modules/infaq/infaq.routes';
+import vouchersRoutes from './modules/vouchers/vouchers.routes';
+import parentRoutes from './modules/parent/parent.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -80,16 +87,13 @@ export function createApp(): Application {
   // Routes
   // =============================================
   app.use('/api/auth', authRoutes);
-
-  // Tambah modul lain di sini seiring development:
-  // app.use('/api/family',    familyRoutes);
-  // app.use('/api/account',   accountRoutes);
-  // app.use('/api/pockets',   pocketRoutes);
-  // app.use('/api/chores',    choreRoutes);
-  // app.use('/api/limits',    limitRoutes);
-  // app.use('/api/infaq',     infaqRoutes);
-  // app.use('/api/vouchers',  voucherRoutes);
-  // app.use('/api/monitoring', monitoringRoutes);
+  app.use('/api/family', familyRoutes);
+  app.use('/api/pockets', pocketsRoutes);
+  app.use('/api/chores', choresRoutes);
+  app.use('/api/limits', limitsRoutes);
+  app.use('/api/infaq', infaqRoutes);
+  app.use('/api/vouchers', vouchersRoutes);
+  app.use('/api/parent', parentRoutes);
 
   // =============================================
   // Error handlers (harus paling bawah)

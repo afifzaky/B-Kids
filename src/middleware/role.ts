@@ -1,18 +1,11 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { Role } from '@prisma/client';
 import { AuthenticatedRequest, ForbiddenError } from '../types';
 
-/**
- * Middleware untuk cek role user.
- * Selalu gunakan SETELAH verifyToken.
- *
- * Contoh:
- *   router.post('/chores', verifyToken, checkRole('PARENT'), createChore)
- *   router.post('/chores/:id/submit', verifyToken, checkRole('CHILD'), submitChore)
- */
+// Middleware untuk cek role user — selalu gunakan SETELAH verifyToken.
 export function checkRole(...allowedRoles: Role[]) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    const userRole = req.user.role;
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const userRole = (req as AuthenticatedRequest).user?.role;
 
     if (!allowedRoles.includes(userRole)) {
       const error = new ForbiddenError(

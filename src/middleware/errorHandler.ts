@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import { AppError } from '../types';
 import { env } from '../config/env';
 
@@ -18,6 +19,20 @@ export function errorHandler(
     stack: env.NODE_ENV === 'development' ? error.stack : undefined,
   });
 
+  // ZodError = validasi input gagal → 400
+  if (error instanceof ZodError) {
+    res.status(400).json({
+      success: false,
+      message: 'Data yang dikirim tidak valid',
+      code: 'VALIDATION_ERROR',
+      errors: error.errors.map(e => ({
+        field: e.path.join('.'),
+        message: e.message,
+      })),
+    });
+    return;
+  }
+
   // AppError = error yang kita lempar sendiri (expected)
   if (error instanceof AppError) {
     res.status(error.statusCode).json({
@@ -30,7 +45,7 @@ export function errorHandler(
 
   // Prisma errors
   if (error.constructor.name === 'PrismaClientKnownRequestError') {
-    const prismaError = error as { code: string; meta?: { target?: string[] } };
+    const prismaError = error as unknown as { code: string; meta?: { target?: string[] } };
 
     if (prismaError.code === 'P2002') {
       res.status(409).json({

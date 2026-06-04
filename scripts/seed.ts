@@ -267,7 +267,7 @@ async function main() {
   // 4. CHORES — Demo-ready
   // =============================================
 
-  const chore1 = await prisma.chore.create({
+  await prisma.chore.create({
     data: {
       createdById: parentProfile.id,
       assignedToId: aishaProfile.id,
@@ -310,7 +310,6 @@ async function main() {
     },
   });
 
-  // Submission untuk pending chore (siap di-review saat demo)
   await prisma.choreSubmission.create({
     data: {
       choreId: pendingChore.id,
