@@ -1,0 +1,796 @@
+{
+  "info": {
+    "name": "B-Kids — Byond Kids API",
+    "description": "Koleksi lengkap endpoint B-Kids sesuai flow BRD v3.0.\n\nFlow demo:\n1. Register Parent → Login Parent → Buat Profil Anak\n2. Login Child → Kelola Pocket\n3. Parent buat Chore → Child submit → Parent approve → reward masuk\n4. Child infaq\n5. Child beli voucher\n6. Parent set limit → transaksi diblokir jika melebihi\n7. Parent lihat monitoring anak",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:4000", "type": "string" },
+    { "key": "PARENT_TOKEN", "value": "", "type": "string" },
+    { "key": "CHILD_TOKEN", "value": "", "type": "string" },
+    { "key": "CHILD_ID", "value": "", "type": "string" },
+    { "key": "ACCOUNT_ID", "value": "", "type": "string" },
+    { "key": "POCKET_JAJAN_ID", "value": "", "type": "string" },
+    { "key": "POCKET_HAJI_ID", "value": "", "type": "string" },
+    { "key": "CHORE_ID", "value": "", "type": "string" },
+    { "key": "VOUCHER_ID", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🏥 Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/health",
+            "description": "Cek status server. Harus return { status: 'ok' } sebelum mulai testing."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Auth — Parent",
+      "item": [
+        {
+          "name": "1. Register Parent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data?.accessToken) {",
+                  "  pm.collectionVariables.set('PARENT_TOKEN', res.data.accessToken);",
+                  "  console.log('✅ PARENT_TOKEN tersimpan');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/register/parent",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\",\n  \"phone\": \"08123456789\",\n  \"password\": \"Byond@2026\",\n  \"fullName\": \"Budi Santoso\",\n  \"nik\": \"3171234567890001\",\n  \"dateOfBirth\": \"1985-04-15T00:00:00.000Z\",\n  \"bsiAccountNumber\": \"7123456789\"\n}"
+            },
+            "description": "Register akun orang tua baru. Jika sudah ada (setelah seed), gunakan Login Parent."
+          }
+        },
+        {
+          "name": "2. Login Parent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data?.accessToken) {",
+                  "  pm.collectionVariables.set('PARENT_TOKEN', res.data.accessToken);",
+                  "  console.log('✅ PARENT_TOKEN tersimpan:', res.data.accessToken.slice(0, 30) + '...');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/login/parent",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\",\n  \"password\": \"Byond@2026\"\n}"
+            },
+            "description": "Login parent. Auto-save token ke PARENT_TOKEN variable."
+          }
+        },
+        {
+          "name": "3. Get My Profile (Parent)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/auth/me",
+            "description": "Lihat profil parent yang sedang login."
+          }
+        },
+        {
+          "name": "4. Buat Profil Anak",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data?.id) {",
+                  "  pm.collectionVariables.set('CHILD_ID', res.data.id);",
+                  "  console.log('✅ CHILD_ID tersimpan:', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/auth/children",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Aisha Ramadhani\",\n  \"dateOfBirth\": \"2012-07-20T00:00:00.000Z\",\n  \"pin\": \"123456\"\n}"
+            },
+            "description": "Parent buat profil anak. Auto-save CHILD_ID. Anak langsung dapat rekening + pocket Jajan."
+          }
+        },
+        {
+          "name": "5. Daftarkan Device Anak",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/auth/children/activate-device",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"childProfileId\": \"{{CHILD_ID}}\",\n  \"deviceId\": \"demo-device-aisha-001\"\n}"
+            },
+            "description": "Parent aktifkan device untuk anak. Setelah ini anak bisa login dari device tersebut."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Auth — Child",
+      "item": [
+        {
+          "name": "6. Login Child (PIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data?.accessToken) {",
+                  "  pm.collectionVariables.set('CHILD_TOKEN', res.data.accessToken);",
+                  "  console.log('✅ CHILD_TOKEN tersimpan');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/login/child",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"childProfileId\": \"{{CHILD_ID}}\",\n  \"pin\": \"123456\",\n  \"deviceId\": \"demo-device-aisha-001\"\n}"
+            },
+            "description": "Login anak dengan PIN + device binding. Auto-save CHILD_TOKEN."
+          }
+        },
+        {
+          "name": "7. Get My Profile (Child)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/auth/me",
+            "description": "Lihat profil anak + saldo rekening."
+          }
+        },
+        {
+          "name": "8. Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/refresh",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"ISI_REFRESH_TOKEN_DARI_LOGIN\"\n}"
+            },
+            "description": "Perbarui access token menggunakan refresh token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍👧‍👦 Family",
+      "item": [
+        {
+          "name": "9. List Anak Saya",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/family/children",
+            "description": "Parent lihat semua anak yang terdaftar dalam keluarganya beserta saldo masing-masing."
+          }
+        }
+      ]
+    },
+    {
+      "name": "💰 Pockets (Child)",
+      "item": [
+        {
+          "name": "10. List Semua Pocket + Saldo Rekening",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success) {",
+                  "  pm.collectionVariables.set('ACCOUNT_ID', res.data.account.id);",
+                  "  const jajanPocket = res.data.pockets.find(p => p.category === 'JAJAN');",
+                  "  if (jajanPocket) {",
+                  "    pm.collectionVariables.set('POCKET_JAJAN_ID', jajanPocket.id);",
+                  "    console.log('✅ POCKET_JAJAN_ID tersimpan:', jajanPocket.id);",
+                  "  }",
+                  "  const hajiPocket = res.data.pockets.find(p => p.category === 'HAJI');",
+                  "  if (hajiPocket) {",
+                  "    pm.collectionVariables.set('POCKET_HAJI_ID', hajiPocket.id);",
+                  "    console.log('✅ POCKET_HAJI_ID tersimpan:', hajiPocket.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/pockets",
+            "description": "List semua pocket aktif + saldo rekening utama. Auto-save POCKET_JAJAN_ID dan POCKET_HAJI_ID."
+          }
+        },
+        {
+          "name": "11. Buat Pocket Haji (Demo Moment #2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data?.id) {",
+                  "  pm.collectionVariables.set('POCKET_HAJI_ID', res.data.id);",
+                  "  console.log('✅ POCKET_HAJI_ID tersimpan:', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/pockets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tabungan Haji\",\n  \"category\": \"HAJI\",\n  \"targetAmount\": 500000,\n  \"deadline\": \"2030-12-31T00:00:00.000Z\",\n  \"intentionText\": \"Ya Allah, semoga aku bisa berhaji sendiri saat besar nanti. Aamiin.\",\n  \"emoji\": \"🕌\"\n}"
+            },
+            "description": "Demo Moment #2: Anak buat Pocket Haji dengan niat. Auto-save POCKET_HAJI_ID."
+          }
+        },
+        {
+          "name": "12. Buat Pocket Custom (Sepeda)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/pockets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sepeda Impian\",\n  \"category\": \"CUSTOM\",\n  \"targetAmount\": 500000,\n  \"deadline\": \"2027-01-01T00:00:00.000Z\",\n  \"intentionText\": \"Mau beli sepeda buat berangkat ngaji sama teman-teman.\",\n  \"emoji\": \"🚲\"\n}"
+            }
+          }
+        },
+        {
+          "name": "13. Detail Pocket + Riwayat Mutasi",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/pockets/{{POCKET_HAJI_ID}}",
+            "description": "Detail pocket lengkap + 50 mutasi terakhir."
+          }
+        },
+        {
+          "name": "14. Top-up Pocket Haji dari Saldo Utama",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/pockets/{{POCKET_HAJI_ID}}/topup",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10000\n}"
+            },
+            "description": "Anak alokasikan Rp 10.000 dari rekening utama ke Pocket Haji."
+          }
+        },
+        {
+          "name": "15. Edit Pocket (ubah target)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/pockets/{{POCKET_HAJI_ID}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetAmount\": 600000,\n  \"intentionText\": \"Ya Allah, tambahkan rezeki agar aku bisa berhaji lebih cepat. Aamiin.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "16. Hapus Pocket (saldo dikembalikan)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/pockets/GANTI_DENGAN_POCKET_ID_YANG_MAU_DIHAPUS",
+            "description": "⚠️ Ganti URL dengan pocket ID yang ingin dihapus. Saldo otomatis kembali ke rekening utama."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Chores",
+      "item": [
+        {
+          "name": "17. Parent — Buat Chore (Demo Moment #3)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data?.id) {",
+                  "  pm.collectionVariables.set('CHORE_ID', res.data.id);",
+                  "  console.log('✅ CHORE_ID tersimpan:', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/chores",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignedToId\": \"{{CHILD_ID}}\",\n  \"title\": \"Hafal Surah Al-Mulk\",\n  \"description\": \"Hafalkan Surah Al-Mulk (30 ayat) dan demonstrasikan kepada Ayah.\",\n  \"category\": \"Hafalan Qur'an\",\n  \"rewardAmount\": 30000,\n  \"deadline\": \"2026-06-11T23:59:59.000Z\",\n  \"targetPocketId\": \"{{POCKET_HAJI_ID}}\"\n}"
+            },
+            "description": "Demo Moment #3: Parent buat chore Hafal Surah Al-Mulk dengan reward Rp 30.000 → Pocket Haji. Auto-save CHORE_ID."
+          }
+        },
+        {
+          "name": "18. Child — Lihat Daftar Chores Saya",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/chores",
+            "description": "Child lihat semua chores yang ditugaskan untuknya."
+          }
+        },
+        {
+          "name": "19. Parent — Lihat Semua Chores yang Dibuat",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/chores",
+            "description": "Parent lihat semua chores yang pernah dibuat (filter otomatis berdasarkan role)."
+          }
+        },
+        {
+          "name": "20. Child — Submit Bukti Penyelesaian (Demo Moment #3)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/chores/{{CHORE_ID}}/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Sudah hafal semua 30 ayat Ayah! Ini foto buktinya 🎉\",\n  \"mediaUrl\": \"https://picsum.photos/400/300\"\n}"
+            },
+            "description": "Demo Moment #3: Child submit bukti foto + catatan. Status chore berubah ke PENDING_REVIEW."
+          }
+        },
+        {
+          "name": "21. Parent — Approve Chore → Reward Otomatis (Demo Moment #4)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/chores/{{CHORE_ID}}/approve",
+            "description": "Demo Moment #4: Parent approve → sistem auto-debit saldo dummy ortu → kredit Pocket Haji anak. Cek pocket setelah ini!"
+          }
+        },
+        {
+          "name": "22. Parent — Reject Chore + Feedback",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/chores/{{CHORE_ID}}/reject",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejectionNote\": \"Foto kurang jelas. Tolong kirim foto yang lebih terang ya.\"\n}"
+            },
+            "description": "Alternatif approve: Parent reject dengan alasan. Anak bisa submit ulang 1x lagi."
+          }
+        },
+        {
+          "name": "23. Parent — Edit Chore (selagi ACTIVE)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/chores/{{CHORE_ID}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rewardAmount\": 50000,\n  \"description\": \"Hafalkan Surah Al-Mulk (30 ayat) dan demonstrasikan kepada Ayah. Bonus kalau lancar!\"\n}"
+            },
+            "description": "Parent bisa edit chore selama status masih DRAFT atau ACTIVE."
+          }
+        },
+        {
+          "name": "24. Parent — Hapus Chore (hanya DRAFT)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/chores/GANTI_DENGAN_CHORE_DRAFT_ID",
+            "description": "⚠️ Hanya bisa hapus chore berstatus DRAFT. Ganti URL dengan chore ID yang berstatus DRAFT."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🤲 Infaq (Child)",
+      "item": [
+        {
+          "name": "25. Kirim Infaq (Demo Moment #5)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/infaq",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"institution\": \"BSI_MASLAHAT\",\n  \"amount\": 2000,\n  \"sourcePocketId\": \"{{POCKET_JAJAN_ID}}\"\n}"
+            },
+            "description": "Demo Moment #5: Child infaq Rp 2.000 ke BSI Maslahat dari Pocket Jajan."
+          }
+        },
+        {
+          "name": "26. Infaq ke Baznas",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/infaq",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"institution\": \"BAZNAS\",\n  \"amount\": 5000,\n  \"sourcePocketId\": \"{{POCKET_JAJAN_ID}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "27. Infaq ke Lembaga Lainnya",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/infaq",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"institution\": \"OTHER\",\n  \"institutionName\": \"Masjid Al-Ikhlas\",\n  \"amount\": 3000,\n  \"sourcePocketId\": \"{{POCKET_JAJAN_ID}}\"\n}"
+            },
+            "description": "Infaq ke lembaga custom. Wajib isi institutionName jika pilih OTHER."
+          }
+        },
+        {
+          "name": "28. Riwayat Infaq + Total Bulanan",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/infaq",
+            "description": "Riwayat semua infaq + total bulan ini (untuk badge 'Dermawan Muda')."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎫 Voucher Marketplace (Child)",
+      "item": [
+        {
+          "name": "29. Katalog Voucher (semua)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data?.length > 0) {",
+                  "  pm.collectionVariables.set('VOUCHER_ID', res.data[0].id);",
+                  "  console.log('✅ VOUCHER_ID tersimpan (voucher pertama):', res.data[0].name);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/vouchers",
+            "description": "List semua voucher aktif. Auto-save VOUCHER_ID (voucher pertama)."
+          }
+        },
+        {
+          "name": "30. Filter Voucher: Gaming",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/vouchers?category=Gaming",
+              "query": [{ "key": "category", "value": "Gaming" }]
+            }
+          }
+        },
+        {
+          "name": "31. Filter Voucher: Belanja Online",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/vouchers?category=Belanja Online",
+              "query": [{ "key": "category", "value": "Belanja Online" }]
+            }
+          }
+        },
+        {
+          "name": "32. Beli Voucher (Demo Moment #6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/vouchers/buy",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voucherId\": \"{{VOUCHER_ID}}\",\n  \"sourcePocketId\": \"{{POCKET_JAJAN_ID}}\"\n}"
+            },
+            "description": "Demo Moment #6: Child beli voucher dari Pocket Jajan. Response berisi mockCode voucher."
+          }
+        },
+        {
+          "name": "33. Riwayat Pembelian Voucher",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/vouchers/history",
+            "description": "List semua voucher yang pernah dibeli + kode mock."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔒 Spending Limits (Parent)",
+      "item": [
+        {
+          "name": "34. Lihat Limit Aktif Anak",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/limits/{{CHILD_ID}}",
+            "description": "Parent lihat limit yang aktif untuk anak tertentu."
+          }
+        },
+        {
+          "name": "35. Set Limit Harian + Mingguan + Bulanan (Demo Moment #7)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/limits/{{CHILD_ID}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"daily\": 20000,\n  \"weekly\": 100000,\n  \"monthly\": 300000,\n  \"excludeInfaq\": true\n}"
+            },
+            "description": "Demo Moment #7: Set limit harian Rp 20.000, mingguan Rp 100.000, bulanan Rp 300.000. Infaq tidak dihitung."
+          }
+        },
+        {
+          "name": "36. Set Limit Harian Sangat Kecil (untuk test blokir)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/limits/{{CHILD_ID}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"daily\": 1000,\n  \"excludeInfaq\": true\n}"
+            },
+            "description": "Set limit harian Rp 1.000 untuk test bahwa transaksi besar diblokir. Lalu coba beli voucher → harus ditolak."
+          }
+        },
+        {
+          "name": "37. Hapus Limit (null = nonaktifkan)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/limits/{{CHILD_ID}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"daily\": null\n}"
+            },
+            "description": "Set daily=null untuk nonaktifkan limit harian. Limit lain tidak terpengaruh."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Parent Monitoring",
+      "item": [
+        {
+          "name": "38. Dashboard Ringkasan Anak",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/parent/summary/{{CHILD_ID}}",
+            "description": "Parent lihat dashboard lengkap anak: saldo, pocket, chores pending, infaq bulan ini, reward bulan ini, limit aktif, 15 transaksi terakhir."
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚠️ Error & Security Tests",
+      "item": [
+        {
+          "name": "E1. Akses tanpa token → 401",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/pockets",
+            "description": "Ekspektasi: 401 Unauthorized"
+          }
+        },
+        {
+          "name": "E2. Child akses endpoint Parent → 403",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/family/children",
+            "description": "Ekspektasi: 403 Forbidden (child tidak bisa akses endpoint parent)"
+          }
+        },
+        {
+          "name": "E3. Parent akses endpoint Child → 403",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/pockets",
+            "description": "Ekspektasi: 403 Forbidden (parent tidak bisa akses endpoint child)"
+          }
+        },
+        {
+          "name": "E4. Beli voucher saat melebihi limit → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/vouchers/buy",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voucherId\": \"{{VOUCHER_ID}}\",\n  \"sourcePocketId\": \"{{POCKET_JAJAN_ID}}\"\n}"
+            },
+            "description": "Jalankan ini SETELAH set limit Rp 1.000 (request #36). Ekspektasi: 422 SPENDING_LIMIT_EXCEEDED."
+          }
+        },
+        {
+          "name": "E5. Top-up pocket melebihi saldo → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{CHILD_TOKEN}}" }
+            ],
+            "url": "{{BASE_URL}}/api/pockets/{{POCKET_HAJI_ID}}/topup",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 99999999\n}"
+            },
+            "description": "Ekspektasi: 422 INSUFFICIENT_BALANCE"
+          }
+        },
+        {
+          "name": "E6. Validation error — field hilang → 400",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/register/parent",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@test.com\"\n}"
+            },
+            "description": "Ekspektasi: 400 VALIDATION_ERROR dengan field errors yang spesifik."
+          }
+        },
+        {
+          "name": "E7. Login password salah → 401",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/login/parent",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\",\n  \"password\": \"passwordsalah\"\n}"
+            },
+            "description": "Ekspektasi: 401 AUTH_ERROR — pesan generik tanpa info tambahan (anti timing-attack)."
+          }
+        },
+        {
+          "name": "E8. IDOR — Parent akses anak orang lain → 403",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{PARENT_TOKEN}}" }],
+            "url": "{{BASE_URL}}/api/parent/summary/00000000-0000-0000-0000-000000000000",
+            "description": "Ekspektasi: 403 Forbidden — IDOR test, parent tidak bisa akses anak yang bukan miliknya."
+          }
+        },
+        {
+          "name": "E9. Route tidak ada → 404",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/endpoint-tidak-ada",
+            "description": "Ekspektasi: 404 ROUTE_NOT_FOUND"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🌱 Demo — Full Flow Seeder",
+      "item": [
+        {
+          "name": "Seed data demo (jalankan via terminal)",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/health",
+            "description": "⚠️ Ini bukan request API.\n\nUntuk reset dan isi data demo, jalankan di terminal:\n\n  npm run db:seed\n\nData yang akan tersedia:\n• Parent: budi.santoso@demo.byond.id / Byond@2026\n• Anak 1 Aisha — PIN: 123456, device: demo-device-aisha-001\n• Anak 2 Rizky — PIN: 654321, device: demo-device-rizky-001\n• 3 Pocket per anak, saldo siap\n• 3 Chores (1 PENDING_REVIEW siap di-approve)\n• 5 Voucher catalog\n\nSetelah seed, gunakan Login Parent (request #2) dan Login Child (request #6) untuk dapat token."
+          }
+        }
+      ]
+    }
+  ]
+}

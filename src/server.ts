@@ -9,9 +9,8 @@ async function bootstrap(): Promise<void> {
 
   const server = app.listen(env.PORT, () => {
     console.log(`
-╔══════════════════════════════════════╗
-║        BYOND KIDS — Backend          ║
-╠══════════════════════════════════════╣
+        BYOND KIDS — Backend          
+══════════════════════════════════════
   Status   : Running                  
   Port     : ${env.PORT}              
   Env      : ${env.NODE_ENV.padEnd(22)}
