@@ -14,15 +14,15 @@ function serializeChore(c: { rewardAmount: bigint; [key: string]: unknown }) {
 
 async function assertParentOwnsChore(choreId: string, parentProfileId: string) {
   const chore = await prisma.chore.findUnique({ where: { id: choreId } });
-  if (!chore) throw new NotFoundError('Chore');
-  if (chore.createdById !== parentProfileId) throw new ForbiddenError('Bukan chore milik Anda');
+  if (!chore) throw new NotFoundError('Tugas');
+  if (chore.createdById !== parentProfileId) throw new ForbiddenError('Bukan tugas milik Anda');
   return chore;
 }
 
 async function assertChildAssignedToChore(choreId: string, childProfileId: string) {
   const chore = await prisma.chore.findUnique({ where: { id: choreId } });
-  if (!chore) throw new NotFoundError('Chore');
-  if (chore.assignedToId !== childProfileId) throw new ForbiddenError('Chore ini bukan untukmu');
+  if (!chore) throw new NotFoundError('Tugas');
+  if (chore.assignedToId !== childProfileId) throw new ForbiddenError('Tugas ini bukan untukmu');
   return chore;
 }
 
@@ -40,9 +40,6 @@ export async function listChores(profileId: string, role: string) {
         orderBy: { submittedAt: 'desc' },
         take: 1,
       },
-      targetPocket: {
-        select: { id: true, name: true, emoji: true },
-      },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -58,18 +55,6 @@ export async function createChore(parentProfileId: string, input: CreateChoreInp
   const hasAccess = await validateFamilyAccess(parentProfileId, input.assignedToId);
   if (!hasAccess) throw new ForbiddenError('Anak tidak terdaftar dalam keluarga Anda');
 
-  if (input.targetPocketId) {
-    const childAccount = await prisma.childAccount.findUnique({
-      where: { childProfileId: input.assignedToId },
-    });
-    if (childAccount) {
-      const pocket = await prisma.pocket.findFirst({
-        where: { id: input.targetPocketId, accountId: childAccount.id, isActive: true },
-      });
-      if (!pocket) throw new AppError('Pocket tujuan tidak valid atau tidak aktif', 422, 'INVALID_POCKET');
-    }
-  }
-
   const chore = await prisma.chore.create({
     data: {
       createdById: parentProfileId,
@@ -79,7 +64,6 @@ export async function createChore(parentProfileId: string, input: CreateChoreInp
       category: input.category,
       rewardAmount: BigInt(Math.round(input.rewardAmount * 100)),
       deadline: new Date(input.deadline),
-      targetPocketId: input.targetPocketId ?? null,
       status: 'ACTIVE',
     },
   });
@@ -94,8 +78,12 @@ export async function updateChore(
 ) {
   const chore = await assertParentOwnsChore(choreId, parentProfileId);
 
-  if (!['DRAFT', 'ACTIVE'].includes(chore.status)) {
-    throw new AppError('Chore tidak dapat diubah setelah disubmit anak', 422, 'CHORE_NOT_EDITABLE');
+  if (!['ACTIVE'].includes(chore.status)) {
+    throw new AppError(
+      'Tugas tidak dapat diubah setelah disubmit anak',
+      422,
+      'CHORE_NOT_EDITABLE',
+    );
   }
 
   const updated = await prisma.chore.update({
@@ -108,7 +96,6 @@ export async function updateChore(
         rewardAmount: BigInt(Math.round(input.rewardAmount * 100)),
       }),
       ...(input.deadline !== undefined && { deadline: new Date(input.deadline) }),
-      ...(input.targetPocketId !== undefined && { targetPocketId: input.targetPocketId }),
     },
   });
 
@@ -118,12 +105,22 @@ export async function updateChore(
 export async function deleteChore(choreId: string, parentProfileId: string) {
   const chore = await assertParentOwnsChore(choreId, parentProfileId);
 
-  if (chore.status !== 'DRAFT') {
-    throw new AppError('Hanya chore berstatus DRAFT yang dapat dihapus', 422, 'CHORE_NOT_DELETABLE');
+  // Bisa dihapus selama belum ada submission (ACTIVE atau status awal)
+  const cancellableStatuses = ['ACTIVE', 'REVISION_NEEDED'];
+  if (!cancellableStatuses.includes(chore.status)) {
+    throw new AppError(
+      'Tugas tidak dapat dibatalkan setelah disubmit atau disetujui',
+      422,
+      'CHORE_NOT_CANCELLABLE',
+    );
   }
 
-  await prisma.chore.delete({ where: { id: choreId } });
-  return { message: 'Chore berhasil dihapus' };
+  await prisma.chore.update({
+    where: { id: choreId },
+    data: { status: 'CANCELLED' },
+  });
+
+  return { message: 'Tugas berhasil dibatalkan' };
 }
 
 export async function submitChore(
@@ -133,9 +130,9 @@ export async function submitChore(
 ) {
   const chore = await assertChildAssignedToChore(choreId, childProfileId);
 
-  const submittableStatuses = ['ACTIVE', 'REJECTED', 'REVISION_NEEDED'];
+  const submittableStatuses = ['ACTIVE', 'REVISION_NEEDED'];
   if (!submittableStatuses.includes(chore.status)) {
-    throw new AppError('Chore tidak dapat disubmit saat ini', 422, 'CHORE_NOT_SUBMITTABLE');
+    throw new AppError('Tugas tidak dapat disubmit saat ini', 422, 'CHORE_NOT_SUBMITTABLE');
   }
 
   const submissionCount = await prisma.choreSubmission.count({ where: { choreId } });
@@ -170,84 +167,69 @@ export async function approveChore(
   const chore = await assertParentOwnsChore(choreId, parentProfileId);
 
   if (chore.status !== 'PENDING_REVIEW') {
-    throw new AppError('Chore belum dalam status menunggu review', 422, 'CHORE_NOT_PENDING');
+    throw new AppError('Tugas belum dalam status menunggu review', 422, 'CHORE_NOT_PENDING');
   }
 
-  const parentProfile = await prisma.parentProfile.findUnique({
-    where: { id: parentProfileId },
-  });
+  const parentProfile = await prisma.parentProfile.findUnique({ where: { id: parentProfileId } });
   if (!parentProfile) throw new NotFoundError('Profil orang tua');
 
   if (parentProfile.dummyBalance < chore.rewardAmount) {
     throw new AppError(
-      'Saldo dummy orang tua tidak mencukupi untuk memberikan reward',
+      'Saldo orang tua tidak mencukupi untuk memberikan reward',
       422,
       'INSUFFICIENT_PARENT_BALANCE',
     );
   }
 
+  const childAccount = await prisma.childAccount.findUnique({
+    where: { childProfileId: chore.assignedToId },
+  });
+  if (!childAccount) throw new NotFoundError('Rekening anak');
+
+  const parentNewBalance = parentProfile.dummyBalance - chore.rewardAmount;
+  const childNewBalance = childAccount.balance + chore.rewardAmount;
+
   await prisma.$transaction(async tx => {
-    // Debit dari saldo dummy orang tua
+    // 1. Debit saldo parent
     await tx.parentProfile.update({
       where: { id: parentProfileId },
-      data: { dummyBalance: parentProfile.dummyBalance - chore.rewardAmount },
+      data: { dummyBalance: parentNewBalance },
     });
 
-    if (chore.targetPocketId) {
-      // Kredit langsung ke pocket target
-      const pocket = await tx.pocket.findUnique({ where: { id: chore.targetPocketId } });
-      if (pocket) {
-        const newPocketBalance = pocket.balance + chore.rewardAmount;
-        await tx.pocket.update({
-          where: { id: chore.targetPocketId },
-          data: {
-            balance: newPocketBalance,
-            isGoalCompleted: pocket.targetAmount
-              ? newPocketBalance >= pocket.targetAmount
-              : false,
-          },
-        });
+    // 2. Catat di ParentLedger
+    await tx.parentLedger.create({
+      data: {
+        parentProfileId,
+        type: 'DEBIT',
+        source: 'CHORE_REWARD',
+        amount: chore.rewardAmount,
+        balanceAfter: parentNewBalance,
+        relatedChildId: chore.assignedToId,
+        notes: `Reward tugas disetujui: "${chore.title}"`,
+      },
+    });
 
-        await tx.pocketLedger.create({
-          data: {
-            pocketId: chore.targetPocketId,
-            type: 'CREDIT',
-            source: 'CHORE_REWARD',
-            amount: chore.rewardAmount,
-            balanceAfter: newPocketBalance,
-            referenceId: chore.id,
-            triggeredBy,
-            notes: `Reward dari chore: "${chore.title}"`,
-          },
-        });
-      }
-    } else {
-      // Kredit ke rekening utama anak
-      const childAccount = await tx.childAccount.findUnique({
-        where: { childProfileId: chore.assignedToId },
-      });
-      if (childAccount) {
-        const newBalance = childAccount.balance + chore.rewardAmount;
-        await tx.childAccount.update({
-          where: { id: childAccount.id },
-          data: { balance: newBalance },
-        });
+    // 3. Kredit ke Tabungan Utama anak (SELALU — bukan pocket)
+    await tx.childAccount.update({
+      where: { id: childAccount.id },
+      data: { balance: childNewBalance },
+    });
 
-        await tx.accountLedger.create({
-          data: {
-            accountId: childAccount.id,
-            type: 'CREDIT',
-            source: 'CHORE_REWARD',
-            amount: chore.rewardAmount,
-            balanceAfter: newBalance,
-            referenceId: chore.id,
-            triggeredBy,
-            notes: `Reward dari chore: "${chore.title}"`,
-          },
-        });
-      }
-    }
+    // 4. Catat di AccountLedger anak
+    await tx.accountLedger.create({
+      data: {
+        accountId: childAccount.id,
+        type: 'CREDIT',
+        source: 'CHORE_REWARD',
+        amount: chore.rewardAmount,
+        balanceAfter: childNewBalance,
+        referenceId: chore.id,
+        triggeredBy,
+        notes: `Reward dari tugas: "${chore.title}"`,
+      },
+    });
 
+    // 5. Update status chore
     await tx.chore.update({
       where: { id: choreId },
       data: { status: 'APPROVED' },
@@ -264,15 +246,20 @@ export async function approveChore(
         action: 'APPROVE_CHORE',
         entityType: 'Chore',
         entityId: choreId,
-        newValues: { rewardAmount: Number(chore.rewardAmount) / 100, targetPocketId: chore.targetPocketId },
+        newValues: {
+          rewardAmount: Number(chore.rewardAmount) / 100,
+          childNewBalance: Number(childNewBalance) / 100,
+          destination: 'TABUNGAN_UTAMA',
+        },
       },
     });
   });
 
   return {
-    message: `Chore disetujui! Reward Rp ${(Number(chore.rewardAmount) / 100).toLocaleString('id-ID')} berhasil dikirim.`,
+    message: `Tugas disetujui! Reward Rp ${(Number(chore.rewardAmount) / 100).toLocaleString('id-ID')} masuk ke Tabungan Utama anak.`,
     reward: Number(chore.rewardAmount) / 100,
-    targetPocketId: chore.targetPocketId,
+    destination: 'TABUNGAN_UTAMA',
+    childNewBalance: Number(childNewBalance) / 100,
   };
 }
 
@@ -285,11 +272,10 @@ export async function rejectChore(
   const chore = await assertParentOwnsChore(choreId, parentProfileId);
 
   if (chore.status !== 'PENDING_REVIEW') {
-    throw new AppError('Chore belum dalam status menunggu review', 422, 'CHORE_NOT_PENDING');
+    throw new AppError('Tugas belum dalam status menunggu review', 422, 'CHORE_NOT_PENDING');
   }
 
   const submissionCount = await prisma.choreSubmission.count({ where: { choreId } });
-  // Jika sudah 2x submit dan masih ditolak → final REJECTED; jika baru 1x → bisa revisi
   const nextStatus = submissionCount >= 2 ? 'REJECTED' : 'REVISION_NEEDED';
 
   await prisma.$transaction(async tx => {
@@ -315,8 +301,8 @@ export async function rejectChore(
   });
 
   const message = nextStatus === 'REVISION_NEEDED'
-    ? 'Chore dikembalikan untuk perbaikan. Anak dapat submit ulang 1x lagi.'
-    : 'Chore ditolak.';
+    ? 'Tugas dikembalikan untuk perbaikan. Anak dapat submit ulang 1x lagi.'
+    : 'Tugas ditolak final.';
 
   return { message, status: nextStatus };
 }

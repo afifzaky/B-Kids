@@ -15,7 +15,7 @@ export const createChoreSchema = z.object({
   category: z.enum(CHORE_CATEGORIES, { errorMap: () => ({ message: 'Kategori tidak valid' }) }),
   rewardAmount: z.number().positive('Reward harus lebih dari 0'),
   deadline: z.string().datetime({ message: 'Format deadline tidak valid (ISO 8601)' }),
-  targetPocketId: z.string().uuid('ID pocket tidak valid').optional(),
+  // targetPocketId dihapus — reward SELALU masuk ke Tabungan Utama anak
 });
 
 export const updateChoreSchema = z.object({
@@ -24,7 +24,6 @@ export const updateChoreSchema = z.object({
   category: z.enum(CHORE_CATEGORIES).optional(),
   rewardAmount: z.number().positive().optional(),
   deadline: z.string().datetime().optional(),
-  targetPocketId: z.string().uuid().nullable().optional(),
 });
 
 export const submitChoreSchema = z.object({

@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../../config/database';
 import { env } from '../../config/env';
@@ -19,24 +20,51 @@ import type {
 } from './auth.validator';
 
 // =============================================
-// Token helpers
+// Internal helpers
 // =============================================
+
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function parseDurationMs(duration: string): number {
+  const match = duration.match(/^(\d+)(ms|s|m|h|d)$/);
+  if (!match) return 7 * 24 * 60 * 60 * 1000; // default 7d
+  const val = parseInt(match[1]);
+  const units: Record<string, number> = {
+    ms: 1,
+    s: 1_000,
+    m: 60_000,
+    h: 3_600_000,
+    d: 86_400_000,
+  };
+  return val * (units[match[2]] ?? 1_000);
+}
+
+async function storeRefreshToken(userId: string, token: string): Promise<void> {
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(Date.now() + parseDurationMs(env.JWT_REFRESH_EXPIRES_IN));
+
+  await prisma.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
+
+  // Bersihkan token lama yang sudah expired untuk user ini
+  await prisma.refreshToken.deleteMany({
+    where: { userId, expiresAt: { lt: new Date() } },
+  });
+}
 
 function generateTokens(payload: Omit<JwtPayload, 'iat' | 'exp'>) {
   const accessToken = jwt.sign(payload, env.JWT_SECRET, {
     expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
   });
-
   const refreshToken = jwt.sign(
     { sub: payload.sub },
     env.JWT_REFRESH_SECRET,
     { expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] },
   );
-
   return { accessToken, refreshToken };
 }
 
-// Nomor rekening dummy — dalam produksi akan dari core banking BSI
 function generateDummyAccountNumber(): string {
   return '7' + Math.floor(Math.random() * 9_000_000_000 + 1_000_000_000).toString();
 }
@@ -46,26 +74,36 @@ function generateDummyAccountNumber(): string {
 // =============================================
 
 export async function registerParent(input: RegisterParentInput) {
-  // Cek duplikat email
   const existingUser = await prisma.user.findFirst({
     where: { OR: [{ email: input.email }, { phone: input.phone }] },
   });
-
   if (existingUser) {
     throw new AppError('Email atau nomor HP sudah terdaftar', 409, 'DUPLICATE_USER');
   }
 
-  // Cek NIK duplikat
-  const existingNIK = await prisma.parentProfile.findFirst({
-    where: { nik: input.nik },
-  });
+  const existingNIK = await prisma.parentProfile.findFirst({ where: { nik: input.nik } });
   if (existingNIK) {
     throw new AppError('NIK sudah terdaftar', 409, 'DUPLICATE_NIK');
   }
 
-  const passwordHash = await bcrypt.hash(input.password, env.BCRYPT_SALT_ROUNDS);
+  const existingBSI = await prisma.parentProfile.findFirst({
+    where: { bsiAccountNumber: input.bsiAccountNumber },
+  });
+  if (existingBSI) {
+    throw new AppError(
+      'Nomor rekening BSI sudah terdaftar dalam sistem',
+      409,
+      'DUPLICATE_BSI_ACCOUNT',
+    );
+  }
 
-  // Buat user + parent profile dalam satu transaction
+  const OPENING_BALANCE = BigInt(1_000_000_000); // Rp 10.000.000 dalam sen
+
+  const [passwordHash, pinHash] = await Promise.all([
+    bcrypt.hash(input.password, env.BCRYPT_SALT_ROUNDS),
+    bcrypt.hash(input.savingsPin, env.BCRYPT_SALT_ROUNDS),
+  ]);
+
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
@@ -83,7 +121,8 @@ export async function registerParent(input: RegisterParentInput) {
         nik: input.nik,
         dateOfBirth: new Date(input.dateOfBirth),
         bsiAccountNumber: input.bsiAccountNumber,
-        dummyBalance: BigInt(10_000_000_00), // Rp 10.000.000 dummy
+        pinHash,
+        dummyBalance: OPENING_BALANCE,
       },
     });
 
@@ -96,6 +135,8 @@ export async function registerParent(input: RegisterParentInput) {
     profileId: result.parentProfile.id,
   });
 
+  await storeRefreshToken(result.user.id, tokens.refreshToken);
+
   return {
     user: {
       id: result.user.id,
@@ -106,12 +147,19 @@ export async function registerParent(input: RegisterParentInput) {
       id: result.parentProfile.id,
       fullName: result.parentProfile.fullName,
     },
+    bsiAccount: {
+      accountNumber: input.bsiAccountNumber,
+      balance: Number(OPENING_BALANCE) / 100,
+      currency: 'IDR',
+      status: 'DEMO',
+      note: 'Saldo awal Rp 10.000.000 (simulasi). Produksi: terhubung ke BSI Open API.',
+    },
     ...tokens,
   };
 }
 
 // =============================================
-// Parent: Login
+// Parent: Login (Email + Password → PIN Tabungan)
 // =============================================
 
 export async function loginParent(input: LoginParentInput) {
@@ -121,8 +169,7 @@ export async function loginParent(input: LoginParentInput) {
   });
 
   if (!user || !user.parentProfile) {
-    // Tetap hash untuk mencegah timing attack
-    await bcrypt.hash(input.password, env.BCRYPT_SALT_ROUNDS);
+    await bcrypt.hash(input.password, env.BCRYPT_SALT_ROUNDS); // anti timing-attack
     throw new AuthError('Email atau password salah');
   }
 
@@ -131,11 +178,21 @@ export async function loginParent(input: LoginParentInput) {
     throw new AuthError('Email atau password salah');
   }
 
+  // Verifikasi PIN Tabungan (hanya jika sudah di-set — guard untuk data lama)
+  if (user.parentProfile.pinHash && user.parentProfile.pinHash !== '') {
+    const isPinValid = await bcrypt.compare(input.savingsPin, user.parentProfile.pinHash);
+    if (!isPinValid) {
+      throw new AuthError('PIN Tabungan salah');
+    }
+  }
+
   const tokens = generateTokens({
     sub: user.id,
     role: 'PARENT',
     profileId: user.parentProfile.id,
   });
+
+  await storeRefreshToken(user.id, tokens.refreshToken);
 
   return {
     user: { id: user.id, email: user.email, role: user.role },
@@ -148,31 +205,51 @@ export async function loginParent(input: LoginParentInput) {
 }
 
 // =============================================
-// Parent: Buat Child Profile
+// Parent: Buat Akun Anak (butuh konfirmasi PIN)
 // =============================================
 
 export async function createChildProfile(
   parentProfileId: string,
   input: CreateChildInput,
 ) {
-  // Cek berapa anak sudah ditambahkan (batas 5 untuk prototype)
-  const existingChildren = await prisma.familyLink.count({
-    where: { parentProfileId },
+  // 1. Validasi PIN orangtua sebelum buat akun anak
+  const parentProfile = await prisma.parentProfile.findUnique({
+    where: { id: parentProfileId },
   });
+  if (!parentProfile) throw new NotFoundError('Profil orang tua');
 
+  if (parentProfile.pinHash && parentProfile.pinHash !== '') {
+    const isPinValid = await bcrypt.compare(input.parentPin, parentProfile.pinHash);
+    if (!isPinValid) {
+      throw new AuthError('PIN Tabungan orang tua tidak valid. Pembuatan akun anak dibatalkan.');
+    }
+  }
+
+  // 2. Cek batas anak
+  const existingChildren = await prisma.familyLink.count({ where: { parentProfileId } });
   if (existingChildren >= 5) {
     throw new AppError('Maksimal 5 anak per akun', 422, 'MAX_CHILDREN_REACHED');
   }
 
-  const pinHash = await bcrypt.hash(input.pin, env.BCRYPT_SALT_ROUNDS);
+  // 3. Cek keunikan username
+  const existingUsername = await prisma.childProfile.findFirst({
+    where: { username: input.username },
+  });
+  if (existingUsername) {
+    throw new AppError('Username sudah digunakan', 409, 'DUPLICATE_USERNAME');
+  }
+
+  const [passwordHash, pinHash] = await Promise.all([
+    bcrypt.hash(input.password, env.BCRYPT_SALT_ROUNDS),
+    bcrypt.hash(input.pin, env.BCRYPT_SALT_ROUNDS),
+  ]);
   const childAccountNumber = generateDummyAccountNumber();
 
   const result = await prisma.$transaction(async (tx) => {
-    // Buat user untuk anak (email opsional, role CHILD)
     const childUser = await tx.user.create({
       data: {
-        email: `child-${uuidv4()}@byond.internal`, // placeholder email internal
-        passwordHash: pinHash, // anak tidak punya password, hanya PIN
+        email: `child-${uuidv4()}@byond.internal`,
+        passwordHash, // password asli anak
         role: 'CHILD',
       },
     });
@@ -182,13 +259,15 @@ export async function createChildProfile(
         userId: childUser.id,
         fullName: input.fullName,
         dateOfBirth: new Date(input.dateOfBirth),
+        username: input.username,
         pinHash,
         createdByParentId: parentProfileId,
         childAccountNumber,
       },
     });
 
-    // Buat rekening anak (saldo awal 0)
+    // Tabungan Utama anak — saldo awal Rp 0
+    // Anak tidak langsung punya saldo; ortu perlu transfer melalui banking
     const account = await tx.childAccount.create({
       data: {
         childProfileId: childProfile.id,
@@ -197,18 +276,6 @@ export async function createChildProfile(
       },
     });
 
-    // Buat pocket default: Jajan
-    await tx.pocket.create({
-      data: {
-        accountId: account.id,
-        name: 'Uang Jajan',
-        category: 'JAJAN',
-        emoji: '🍜',
-        balance: BigInt(0),
-      },
-    });
-
-    // Link parent-child
     await tx.familyLink.create({
       data: { parentProfileId, childProfileId: childProfile.id },
     });
@@ -219,28 +286,29 @@ export async function createChildProfile(
   return {
     id: result.childProfile.id,
     fullName: result.childProfile.fullName,
+    username: result.childProfile.username,
     dateOfBirth: result.childProfile.dateOfBirth,
     childAccountNumber,
-    accountId: result.account.id,
+    tabunganUtama: {
+      id: result.account.id,
+      balance: 0,
+      currency: 'IDR',
+      note: 'Saldo Rp 0. Transfer melalui Banking → Transfer ke Anak untuk mengisi saldo.',
+    },
   };
 }
 
 // =============================================
-// Parent: Aktifkan anak di perangkat
+// Parent: Aktifkan Perangkat Anak (opsional)
 // =============================================
 
 export async function activateChildDevice(
   parentProfileId: string,
   input: ActivateChildDeviceInput,
 ) {
-  // Validasi anak ini milik parent yang login
   const link = await prisma.familyLink.findFirst({
-    where: {
-      parentProfileId,
-      childProfileId: input.childProfileId,
-    },
+    where: { parentProfileId, childProfileId: input.childProfileId },
   });
-
   if (!link) {
     throw new ForbiddenError('Anak tidak terdaftar dalam keluarga ini');
   }
@@ -254,31 +322,27 @@ export async function activateChildDevice(
 }
 
 // =============================================
-// Child: Login (PIN + device binding)
+// Child: Login (Username + Password + PIN)
 // =============================================
 
 export async function loginChild(input: LoginChildInput) {
   const childProfile = await prisma.childProfile.findFirst({
-    where: {
-      id: input.childProfileId,
-      isActive: true,
-    },
+    where: { username: input.username, isActive: true },
     include: { user: true },
   });
 
   if (!childProfile) {
-    throw new NotFoundError('Profil anak');
+    await bcrypt.hash(input.password, env.BCRYPT_SALT_ROUNDS); // anti timing-attack
+    throw new AuthError('Username, password, atau PIN salah');
   }
 
-  // Cek device binding — anak hanya bisa login dari perangkat terdaftar
-  if (childProfile.deviceId && childProfile.deviceId !== input.deviceId) {
-    throw new ForbiddenError('Perangkat tidak dikenali. Minta orang tua untuk mengaktifkan perangkat ini.');
-  }
+  const [isPasswordValid, isPinValid] = await Promise.all([
+    bcrypt.compare(input.password, childProfile.user.passwordHash),
+    bcrypt.compare(input.pin, childProfile.pinHash),
+  ]);
 
-  // Validasi PIN
-  const isPinValid = await bcrypt.compare(input.pin, childProfile.pinHash);
-  if (!isPinValid) {
-    throw new AuthError('PIN salah');
+  if (!isPasswordValid || !isPinValid) {
+    throw new AuthError('Username, password, atau PIN salah');
   }
 
   const tokens = generateTokens({
@@ -287,17 +351,40 @@ export async function loginChild(input: LoginChildInput) {
     profileId: childProfile.id,
   });
 
+  await storeRefreshToken(childProfile.user.id, tokens.refreshToken);
+
   return {
     profile: {
       id: childProfile.id,
       fullName: childProfile.fullName,
+      username: childProfile.username,
     },
     ...tokens,
   };
 }
 
 // =============================================
-// Refresh Token
+// Logout — Invalidasi refresh token di DB
+// =============================================
+
+export async function logout(refreshToken: string) {
+  const tokenHash = hashToken(refreshToken);
+
+  try {
+    const payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as { sub: string };
+    await prisma.refreshToken.deleteMany({
+      where: { userId: payload.sub, tokenHash },
+    });
+  } catch {
+    // Token expired atau invalid — hapus dari DB jika ada (idempotent)
+    await prisma.refreshToken.deleteMany({ where: { tokenHash } });
+  }
+
+  return { message: 'Logout berhasil. Sampai jumpa!' };
+}
+
+// =============================================
+// Refresh Token — Rotasi token + cek DB
 // =============================================
 
 export async function refreshAccessToken(refreshToken: string) {
@@ -309,23 +396,35 @@ export async function refreshAccessToken(refreshToken: string) {
     throw new AuthError('Refresh token tidak valid atau sudah kadaluarsa');
   }
 
+  // Cek apakah token masih ada di DB (belum di-logout)
+  const tokenHash = hashToken(refreshToken);
+  const storedToken = await prisma.refreshToken.findUnique({ where: { tokenHash } });
+
+  if (!storedToken) {
+    throw new AuthError('Sesi tidak ditemukan. Silakan login ulang');
+  }
+
+  if (storedToken.expiresAt < new Date()) {
+    await prisma.refreshToken.delete({ where: { tokenHash } });
+    throw new AuthError('Sesi telah berakhir. Silakan login ulang');
+  }
+
   const user = await prisma.user.findFirst({
     where: { id: payload.sub, isActive: true },
-    include: {
-      parentProfile: true,
-      childProfile: true,
-    },
+    include: { parentProfile: true, childProfile: true },
   });
-
   if (!user) throw new AuthError('User tidak ditemukan');
 
-  const profileId =
-    user.parentProfile?.id ?? user.childProfile?.id ?? '';
+  const profileId = user.parentProfile?.id ?? user.childProfile?.id ?? '';
+  const tokens = generateTokens({ sub: user.id, role: user.role, profileId });
 
-  const tokens = generateTokens({
-    sub: user.id,
-    role: user.role,
-    profileId,
+  // Rotasi token: hapus lama → buat baru (mencegah token reuse)
+  const newHash = hashToken(tokens.refreshToken);
+  const expiresAt = new Date(Date.now() + parseDurationMs(env.JWT_REFRESH_EXPIRES_IN));
+
+  await prisma.$transaction(async (tx) => {
+    await tx.refreshToken.delete({ where: { tokenHash } });
+    await tx.refreshToken.create({ data: { userId: user.id, tokenHash: newHash, expiresAt } });
   });
 
   return tokens;

@@ -2,6 +2,93 @@ import { prisma } from '../../config/database';
 import { ForbiddenError, NotFoundError } from '../../types';
 import { validateFamilyAccess } from '../../middleware/role';
 
+// =============================================
+// Parent: Lihat Pockets Anak (read-only)
+// =============================================
+
+export async function getChildPockets(parentProfileId: string, childProfileId: string) {
+  const hasAccess = await validateFamilyAccess(parentProfileId, childProfileId);
+  if (!hasAccess) throw new ForbiddenError('Anak tidak terdaftar dalam keluarga Anda');
+
+  const account = await prisma.childAccount.findUnique({
+    where: { childProfileId },
+    include: {
+      pockets: {
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+  });
+  if (!account) throw new NotFoundError('Rekening anak');
+
+  return {
+    tabunganUtama: {
+      id: account.id,
+      balance: Number(account.balance) / 100,
+      currency: account.currency,
+    },
+    pockets: account.pockets.map(p => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      emoji: p.emoji,
+      balance: Number(p.balance) / 100,
+      targetAmount: p.targetAmount ? Number(p.targetAmount) / 100 : null,
+      progressPercent:
+        p.targetAmount && Number(p.targetAmount) > 0
+          ? Math.min(100, Math.round((Number(p.balance) / Number(p.targetAmount)) * 100))
+          : null,
+      isGoalCompleted: p.isGoalCompleted,
+      deadline: p.deadline,
+      intentionText: p.intentionText,
+    })),
+  };
+}
+
+export async function getChildPocketDetail(
+  parentProfileId: string,
+  childProfileId: string,
+  pocketId: string,
+) {
+  const hasAccess = await validateFamilyAccess(parentProfileId, childProfileId);
+  if (!hasAccess) throw new ForbiddenError('Anak tidak terdaftar dalam keluarga Anda');
+
+  const account = await prisma.childAccount.findUnique({ where: { childProfileId } });
+  if (!account) throw new NotFoundError('Rekening anak');
+
+  const pocket = await prisma.pocket.findFirst({
+    where: { id: pocketId, accountId: account.id },
+  });
+  if (!pocket) throw new NotFoundError('Pocket');
+
+  const ledger = await prisma.pocketLedger.findMany({
+    where: { pocketId: pocket.id },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+
+  return {
+    id: pocket.id,
+    name: pocket.name,
+    category: pocket.category,
+    emoji: pocket.emoji,
+    balance: Number(pocket.balance) / 100,
+    targetAmount: pocket.targetAmount ? Number(pocket.targetAmount) / 100 : null,
+    isGoalCompleted: pocket.isGoalCompleted,
+    intentionText: pocket.intentionText,
+    deadline: pocket.deadline,
+    ledger: ledger.map(l => ({
+      id: l.id,
+      type: l.type,
+      source: l.source,
+      amount: Number(l.amount) / 100,
+      balanceAfter: Number(l.balanceAfter) / 100,
+      notes: l.notes,
+      createdAt: l.createdAt,
+    })),
+  };
+}
+
 export async function getChildSummary(parentProfileId: string, childProfileId: string) {
   const hasAccess = await validateFamilyAccess(parentProfileId, childProfileId);
   if (!hasAccess) throw new ForbiddenError('Anak tidak terdaftar dalam keluarga Anda');

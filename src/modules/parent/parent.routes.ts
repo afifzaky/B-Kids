@@ -14,8 +14,14 @@ router.use(verifyToken, checkRole('PARENT'));
 // Monitoring Anak
 // =============================================
 
-// GET /api/parent/summary/:childId
+// GET /api/parent/summary/:childId — dashboard monitoring anak
 router.get('/summary/:childId', asAuth(ParentController.getChildSummary));
+
+// GET /api/parent/children/:childId/pockets — lihat pockets anak (read-only)
+router.get('/children/:childId/pockets', asAuth(ParentController.getChildPockets));
+
+// GET /api/parent/children/:childId/pockets/:pocketId — detail pocket + ledger
+router.get('/children/:childId/pockets/:pocketId', asAuth(ParentController.getChildPocketDetail));
 
 // =============================================
 // Banking Orang Tua

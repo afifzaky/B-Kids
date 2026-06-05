@@ -45,6 +45,9 @@ router.post('/login/child', loginLimiter, AuthController.loginChild);
 // POST /api/auth/refresh
 router.post('/refresh', AuthController.refreshToken);
 
+// POST /api/auth/logout — invalidasi sesi (tidak perlu Bearer token)
+router.post('/logout', AuthController.logout);
+
 // =============================================
 // Protected routes (perlu token)
 // =============================================

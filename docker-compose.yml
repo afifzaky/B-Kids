@@ -30,10 +30,10 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: development
-      PORT: 3001
+      PORT: 4000
       DATABASE_URL: postgresql://postgres:byond_local_2026@postgres:5432/byond_kids
     ports:
-      - '3001:3001'
+      - '4000:4000'
     depends_on:
       postgres:
         condition: service_healthy

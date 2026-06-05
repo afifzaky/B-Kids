@@ -17,7 +17,8 @@ const envSchema = z.object({
   SUPABASE_STORAGE_BUCKET: z.string().default('chore-submissions'),
 
   JWT_SECRET: z.string().min(32, 'JWT_SECRET minimal 32 karakter'),
-  JWT_EXPIRES_IN: z.string().default('1h'),
+  // Access token 8 menit — auto-logout jika tidak aktif lebih dari 8 menit
+  JWT_EXPIRES_IN: z.string().default('8m'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET minimal 32 karakter'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 

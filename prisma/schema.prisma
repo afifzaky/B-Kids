@@ -35,7 +35,7 @@ enum TransactionType {
 
 enum TransactionSource {
   TOP_UP_FROM_PARENT   // ortu transfer ke anak
-  CHORE_REWARD         // reward chores disetujui
+  CHORE_REWARD         // reward chores disetujui ke tabungan utama
   POCKET_ALLOCATE      // anak alokasikan ke pocket
   POCKET_DEALLOCATE    // anak tarik balik dari pocket
   VOUCHER_PURCHASE     // beli voucher
@@ -47,19 +47,18 @@ enum ParentTransactionSource {
   INITIAL_BALANCE    // saldo awal registrasi
   DEPOSIT            // top-up manual (simulasi BSI)
   TRANSFER_TO_CHILD  // kirim ke rekening anak
+  CHORE_REWARD       // reward chore disetujui (debit dari parent)
   ADJUSTMENT         // koreksi manual
 }
 
 enum ChoreStatus {
-  DRAFT            // baru dibuat ortu, belum aktif
-  ACTIVE           // sudah aktif, anak bisa lihat
-  SUBMITTED        // anak sudah submit bukti
+  ACTIVE           // aktif, anak bisa lihat & submit
   PENDING_REVIEW   // menunggu review ortu
-  APPROVED         // ortu setuju, reward cair
-  REJECTED         // ortu tolak, bisa resubmit
-  REVISION_NEEDED  // butuh perbaikan (sama dgn rejected tapi eksplisit)
+  APPROVED         // ortu setuju, reward cair ke tabungan utama
+  REJECTED         // ortu tolak final (sudah 2x submit)
+  REVISION_NEEDED  // butuh perbaikan (submit 1x, bisa revisi 1x lagi)
   EXPIRED          // deadline lewat tanpa submission
-  CANCELLED        // dibatalkan ortu (hanya jika DRAFT/ACTIVE)
+  CANCELLED        // dibatalkan ortu (hanya jika masih ACTIVE)
 }
 
 enum PocketCategory {
@@ -98,57 +97,61 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  parentProfile ParentProfile?
-  childProfile  ChildProfile?
-  auditLogs     AuditLog[]
+  parentProfile  ParentProfile?
+  childProfile   ChildProfile?
+  auditLogs      AuditLog[]
+  refreshTokens  RefreshToken[]
 
   @@map("users")
 }
 
 model ParentProfile {
-  id               String  @id @default(uuid())
-  userId           String  @unique @map("user_id")
-  fullName         String  @map("full_name")
-  nik              String  @unique
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  fullName         String   @map("full_name")
+  nik              String   @unique
   dateOfBirth      DateTime @map("date_of_birth")
-  // Nomor rekening BSI orang tua (source of fund)
-  // Dalam prototype: dummy, nanti hook ke core banking BSI
-  bsiAccountNumber String  @map("bsi_account_number")
-  // Saldo dummy untuk prototype (dalam rupiah, stored as integer paise/sen)
-  dummyBalance     BigInt  @default(5000000000) @map("dummy_balance") // Rp 5.000.000 default
+  // Nomor rekening BSI — unique: satu rekening = satu akun Byond
+  bsiAccountNumber String   @unique @map("bsi_account_number")
+  // PIN Tabungan (6 digit) — 2nd factor saat login & konfirmasi transaksi penting
+  pinHash          String   @default("") @map("pin_hash")
+  // Saldo dummy — dalam produksi, di-sync dari BSI Open API
+  dummyBalance     BigInt   @default(1000000000) @map("dummy_balance") // Rp 10.000.000
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  familyLinks  FamilyLink[]
-  choresCreated Chore[]      @relation("ChoreCreator")
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyLinks       FamilyLink[]
+  choresCreated     Chore[]         @relation("ChoreCreator")
   spendingLimitsSet SpendingLimit[] @relation("LimitSetBy")
-  ledger       ParentLedger[]
+  ledger            ParentLedger[]
 
   @@map("parent_profiles")
 }
 
 model ChildProfile {
-  id            String    @id @default(uuid())
-  userId        String    @unique @map("user_id")
-  fullName      String    @map("full_name")
-  dateOfBirth   DateTime  @map("date_of_birth")
-  pinHash       String    @map("pin_hash")
-  deviceId      String?   @map("device_id")    // device binding
-  createdByParentId String @map("created_by_parent_id")
-  isActive      Boolean   @default(true) @map("is_active")
-  // Nomor rekening anak (sub-account dari rekening ortu)
-  // Dalam prototype: dummy, nanti hook ke core banking
-  childAccountNumber String @map("child_account_number")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id                 String    @id @default(uuid())
+  userId             String    @unique @map("user_id")
+  fullName           String    @map("full_name")
+  dateOfBirth        DateTime  @map("date_of_birth")
+  // Username untuk login — dibuat oleh orangtua saat create akun anak
+  username           String?   @unique @map("username")
+  // PIN 6 digit — 2nd factor saat login anak
+  pinHash            String    @map("pin_hash")
+  deviceId           String?   @map("device_id")
+  createdByParentId  String    @map("created_by_parent_id")
+  isActive           Boolean   @default(true) @map("is_active")
+  // Nomor rekening anak (sub-account BSI) — dummy untuk prototype
+  childAccountNumber String    @map("child_account_number")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  familyLinks     FamilyLink[]
-  account         ChildAccount?
-  choresAssigned  Chore[]         @relation("ChoreAssignee")
-  spendingLimits  SpendingLimit[] @relation("ChildLimits")
-  infaqLogs       InfaqLog[]
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyLinks        FamilyLink[]
+  account            ChildAccount?
+  choresAssigned     Chore[]         @relation("ChoreAssignee")
+  spendingLimits     SpendingLimit[] @relation("ChildLimits")
+  infaqLogs          InfaqLog[]
   voucherRedemptions VoucherRedemption[]
-  parentTransfers ParentLedger[]  @relation("LedgerRelatedChild")
+  parentTransfers    ParentLedger[]  @relation("LedgerRelatedChild")
 
   @@map("child_profiles")
 }
@@ -170,12 +173,10 @@ model FamilyLink {
 // REKENING & SALDO ANAK
 // =============================================
 
-// Rekening utama anak — sumber saldo sebelum dibagi ke pocket
+// Tabungan Utama anak — sumber saldo sebelum dibagi ke pocket
 model ChildAccount {
   id             String   @id @default(uuid())
   childProfileId String   @unique @map("child_profile_id")
-  // Saldo dalam satuan sen/paise (integer) untuk menghindari floating point
-  // Rp 10.000 = 1000000 (dalam sen)
   balance        BigInt   @default(0)
   currency       String   @default("IDR")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -187,19 +188,18 @@ model ChildAccount {
   @@map("child_accounts")
 }
 
-// Ledger rekening anak — INSERT ONLY, tidak ada UPDATE/DELETE
-// Setiap perubahan saldo = 1 baris baru di sini
+// Ledger rekening anak — INSERT ONLY
 model AccountLedger {
-  id              String            @id @default(uuid())
-  accountId       String            @map("account_id")
-  type            TransactionType
-  source          TransactionSource
-  amount          BigInt            // selalu positif, type yg menentukan arah
-  balanceAfter    BigInt            @map("balance_after")
-  referenceId     String?           @map("reference_id")  // id chore/voucher/infaq terkait
-  triggeredBy     String            @map("triggered_by")  // user_id yang trigger
-  notes           String?
-  createdAt       DateTime          @default(now()) @map("created_at")
+  id           String            @id @default(uuid())
+  accountId    String            @map("account_id")
+  type         TransactionType
+  source       TransactionSource
+  amount       BigInt
+  balanceAfter BigInt            @map("balance_after")
+  referenceId  String?           @map("reference_id")
+  triggeredBy  String            @map("triggered_by")
+  notes        String?
+  createdAt    DateTime          @default(now()) @map("created_at")
 
   account ChildAccount @relation(fields: [accountId], references: [id])
 
@@ -210,26 +210,23 @@ model AccountLedger {
 // POCKET — Alokasi Saldo Anak
 // =============================================
 
-// Pocket adalah partisi virtual dari saldo rekening anak
-// Total balance semua pocket tidak boleh melebihi saldo rekening anak
 model Pocket {
-  id             String         @id @default(uuid())
-  accountId      String         @map("account_id")
-  name           String
-  category       PocketCategory
-  balance        BigInt         @default(0)   // saldo teralokasi di pocket ini
-  targetAmount   BigInt?        @map("target_amount")  // untuk goal saving
-  intentionText  String?        @map("intention_text") // fitur "niat" syariah
-  emoji          String?        @default("💰")
-  deadline       DateTime?
-  isActive       Boolean        @default(true) @map("is_active")
-  isGoalCompleted Boolean       @default(false) @map("is_goal_completed")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  id              String         @id @default(uuid())
+  accountId       String         @map("account_id")
+  name            String
+  category        PocketCategory
+  balance         BigInt         @default(0)
+  targetAmount    BigInt?        @map("target_amount")
+  intentionText   String?        @map("intention_text")
+  emoji           String?        @default("💰")
+  deadline        DateTime?
+  isActive        Boolean        @default(true) @map("is_active")
+  isGoalCompleted Boolean        @default(false) @map("is_goal_completed")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
 
-  account      ChildAccount   @relation(fields: [accountId], references: [id])
-  ledger       PocketLedger[]
-  chores       Chore[]        @relation("ChoreTargetPocket")
+  account ChildAccount   @relation(fields: [accountId], references: [id])
+  ledger  PocketLedger[]
 
   @@map("pockets")
 }
@@ -257,24 +254,22 @@ model PocketLedger {
 // =============================================
 
 model Chore {
-  id              String      @id @default(uuid())
-  createdById     String      @map("created_by_id")        // parent_profile_id
-  assignedToId    String      @map("assigned_to_id")       // child_profile_id
-  targetPocketId  String?     @map("target_pocket_id")     // pocket tujuan reward
-  title           String
-  description     String?
-  category        String      // Akademik | Hafalan | Pekerjaan Rumah | Ibadah | Lainnya
-  rewardAmount    BigInt      @map("reward_amount")         // dalam sen
-  deadline        DateTime
-  status          ChoreStatus @default(DRAFT)
-  rejectionNote   String?     @map("rejection_note")
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
+  id           String      @id @default(uuid())
+  createdById  String      @map("created_by_id")
+  assignedToId String      @map("assigned_to_id")
+  title        String
+  description  String?
+  category     String
+  rewardAmount BigInt      @map("reward_amount") // dalam sen — reward masuk ke Tabungan Utama anak
+  deadline     DateTime
+  status       ChoreStatus @default(ACTIVE)
+  rejectionNote String?    @map("rejection_note")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
 
-  createdBy    ParentProfile    @relation("ChoreCreator", fields: [createdById], references: [id])
-  assignedTo   ChildProfile     @relation("ChoreAssignee", fields: [assignedToId], references: [id])
-  targetPocket Pocket?          @relation("ChoreTargetPocket", fields: [targetPocketId], references: [id])
-  submissions  ChoreSubmission[]
+  createdBy   ParentProfile     @relation("ChoreCreator", fields: [createdById], references: [id])
+  assignedTo  ChildProfile      @relation("ChoreAssignee", fields: [assignedToId], references: [id])
+  submissions ChoreSubmission[]
 
   @@map("chores")
 }
@@ -282,12 +277,12 @@ model Chore {
 model ChoreSubmission {
   id           String    @id @default(uuid())
   choreId      String    @map("chore_id")
-  mediaUrl     String?   @map("media_url")    // URL foto bukti di Supabase Storage
+  mediaUrl     String?   @map("media_url")
   notes        String?
   submittedAt  DateTime  @default(now()) @map("submitted_at")
   reviewedAt   DateTime? @map("reviewed_at")
   reviewerNote String?   @map("reviewer_note")
-  attempt      Int       @default(1)          // berapa kali submit (max 2)
+  attempt      Int       @default(1)
 
   chore Chore @relation(fields: [choreId], references: [id], onDelete: Cascade)
 
@@ -303,7 +298,7 @@ model SpendingLimit {
   childProfileId String              @map("child_profile_id")
   setByParentId  String              @map("set_by_parent_id")
   period         SpendingLimitPeriod
-  limitAmount    BigInt              @map("limit_amount")  // dalam sen
+  limitAmount    BigInt              @map("limit_amount")
   excludeInfaq   Boolean             @default(true) @map("exclude_infaq")
   isActive       Boolean             @default(true) @map("is_active")
   createdAt      DateTime            @default(now()) @map("created_at")
@@ -312,7 +307,7 @@ model SpendingLimit {
   childProfile ChildProfile  @relation("ChildLimits", fields: [childProfileId], references: [id])
   setByParent  ParentProfile @relation("LimitSetBy", fields: [setByParentId], references: [id])
 
-  @@unique([childProfileId, period]) // 1 limit per periode per anak
+  @@unique([childProfileId, period])
   @@map("spending_limits")
 }
 
@@ -321,13 +316,13 @@ model SpendingLimit {
 // =============================================
 
 model InfaqLog {
-  id             String           @id @default(uuid())
-  childProfileId String           @map("child_profile_id")
-  institution    InfaqInstitution
-  institutionName String?         @map("institution_name") // jika OTHER
-  amount         BigInt           // dalam sen
-  sourcePocketId String?          @map("source_pocket_id") // dari pocket mana
-  createdAt      DateTime         @default(now()) @map("created_at")
+  id              String           @id @default(uuid())
+  childProfileId  String           @map("child_profile_id")
+  institution     InfaqInstitution
+  institutionName String?          @map("institution_name")
+  amount          BigInt
+  sourcePocketId  String?          @map("source_pocket_id")
+  createdAt       DateTime         @default(now()) @map("created_at")
 
   childProfile ChildProfile @relation(fields: [childProfileId], references: [id])
 
@@ -341,12 +336,12 @@ model InfaqLog {
 model VoucherCatalog {
   id          String  @id @default(uuid())
   name        String
-  provider    String  // Shopee, Mobile Legends, Free Fire, dll
-  category    String  // Belanja Online | Gaming | Lainnya
-  price       BigInt  // dalam sen
+  provider    String
+  category    String
+  price       BigInt
   description String?
   imageUrl    String? @map("image_url")
-  mockCode    String  @map("mock_code") // kode voucher dummy untuk demo
+  mockCode    String  @map("mock_code")
   isActive    Boolean @default(true) @map("is_active")
 
   redemptions VoucherRedemption[]
@@ -371,19 +366,18 @@ model VoucherRedemption {
 
 // =============================================
 // PARENT LEDGER — Riwayat transaksi orang tua
-// INSERT ONLY — tidak ada UPDATE/DELETE
 // =============================================
 
 model ParentLedger {
-  id              String                 @id @default(uuid())
-  parentProfileId String                 @map("parent_profile_id")
+  id              String                  @id @default(uuid())
+  parentProfileId String                  @map("parent_profile_id")
   type            TransactionType
   source          ParentTransactionSource
-  amount          BigInt                 // selalu positif, type yang menentukan arah
-  balanceAfter    BigInt                 @map("balance_after")
-  relatedChildId  String?                @map("related_child_id") // diisi saat transfer ke anak
+  amount          BigInt
+  balanceAfter    BigInt                  @map("balance_after")
+  relatedChildId  String?                 @map("related_child_id")
   notes           String?
-  createdAt       DateTime               @default(now()) @map("created_at")
+  createdAt       DateTime                @default(now()) @map("created_at")
 
   parentProfile ParentProfile  @relation(fields: [parentProfileId], references: [id])
   relatedChild  ChildProfile?  @relation("LedgerRelatedChild", fields: [relatedChildId], references: [id])
@@ -392,14 +386,30 @@ model ParentLedger {
 }
 
 // =============================================
-// AUDIT LOG — Wajib untuk Banking
+// REFRESH TOKEN — Untuk logout & session tracking
+// =============================================
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// =============================================
+// AUDIT LOG
 // =============================================
 
 model AuditLog {
   id         String   @id @default(uuid())
   userId     String   @map("user_id")
-  action     String   // CREATE_CHORE | APPROVE_CHORE | TOP_UP | etc.
-  entityType String   @map("entity_type") // Chore | Pocket | Account | etc.
+  action     String
+  entityType String   @map("entity_type")
   entityId   String?  @map("entity_id")
   oldValues  Json?    @map("old_values")
   newValues  Json?    @map("new_values")

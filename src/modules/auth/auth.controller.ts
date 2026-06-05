@@ -6,6 +6,7 @@ import {
   loginChildSchema,
   activateChildDeviceSchema,
   refreshTokenSchema,
+  logoutSchema,
 } from './auth.validator';
 import * as AuthService from './auth.service';
 import { AuthenticatedRequest } from '../../types';
@@ -148,6 +149,24 @@ export async function refreshToken(
 }
 
 // =============================================
+// POST /api/auth/logout
+// =============================================
+
+export async function logout(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const { refreshToken } = logoutSchema.parse(req.body);
+    const result = await AuthService.logout(refreshToken);
+    res.status(200).json({ success: true, message: result.message });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// =============================================
 // GET /api/auth/me
 // =============================================
 
@@ -178,23 +197,45 @@ export async function getMe(
       return;
     }
 
-    // Serialisasi BigInt sebelum kirim
-    const data = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      profile: user.parentProfile ?? {
-        ...user.childProfile,
-        account: user.childProfile?.account
+    // Serialize setiap field BigInt secara eksplisit.
+    // JANGAN spread raw Prisma object — BigInt tidak bisa di-JSON.stringify,
+    // dan field sensitif (pinHash, nik) tidak boleh bocor ke client.
+    let profile: Record<string, unknown> | null = null;
+
+    if (user.parentProfile) {
+      profile = {
+        id: user.parentProfile.id,
+        fullName: user.parentProfile.fullName,
+        bsiAccountNumber: user.parentProfile.bsiAccountNumber,
+        balance: Number(user.parentProfile.dummyBalance) / 100,
+        currency: 'IDR',
+      };
+    } else if (user.childProfile) {
+      profile = {
+        id: user.childProfile.id,
+        fullName: user.childProfile.fullName,
+        username: user.childProfile.username,
+        childAccountNumber: user.childProfile.childAccountNumber,
+        isActive: user.childProfile.isActive,
+        account: user.childProfile.account
           ? {
-              ...user.childProfile.account,
+              id: user.childProfile.account.id,
               balance: Number(user.childProfile.account.balance) / 100,
+              currency: user.childProfile.account.currency,
             }
           : null,
-      },
-    };
+      };
+    }
 
-    res.status(200).json({ success: true, data });
+    res.status(200).json({
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        profile,
+      },
+    });
   } catch (error) {
     next(error);
   }

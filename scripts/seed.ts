@@ -115,7 +115,7 @@ async function main() {
   });
 
   // Pocket Aisha
-  const aishaJajanPocket = await prisma.pocket.create({
+  await prisma.pocket.create({
     data: {
       accountId: aishaAccount.id,
       name: 'Uang Jajan',
@@ -271,7 +271,6 @@ async function main() {
     data: {
       createdById: parentProfile.id,
       assignedToId: aishaProfile.id,
-      targetPocketId: aishaJajanPocket.id,
       title: 'Hafal Surah Al-Mulk',
       description: 'Hafalkan Surah Al-Mulk (30 ayat) dan demonstrasikan kepada Ayah.',
       category: 'Hafalan Qur\'an',
@@ -285,7 +284,6 @@ async function main() {
     data: {
       createdById: parentProfile.id,
       assignedToId: aishaProfile.id,
-      targetPocketId: aishaJajanPocket.id,
       title: 'Rapikan kamar selama seminggu',
       description: 'Rapikan tempat tidur dan meja belajar setiap hari selama 7 hari.',
       category: 'Pekerjaan Rumah',
@@ -300,7 +298,6 @@ async function main() {
     data: {
       createdById: parentProfile.id,
       assignedToId: aishaProfile.id,
-      targetPocketId: aishaJajanPocket.id,
       title: 'Nilai Matematika ≥ 85',
       description: 'Capai nilai ulangan Matematika minimal 85.',
       category: 'Akademik',

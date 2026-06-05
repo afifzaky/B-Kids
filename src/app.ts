@@ -19,6 +19,16 @@ export function createApp(): Application {
   const app = express();
 
   // =============================================
+  // Global BigInt serializer — safety net
+  // Semua BigInt harus sudah dikonversi di service/controller,
+  // ini hanya mencegah crash jika ada yang terlewat.
+  // =============================================
+  app.set('json replacer', (_key: string, value: unknown) => {
+    if (typeof value === 'bigint') return Number(value);
+    return value;
+  });
+
+  // =============================================
   // Security headers (wajib untuk banking)
   // =============================================
   app.use(
