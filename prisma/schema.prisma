@@ -43,6 +43,13 @@ enum TransactionSource {
   ADJUSTMENT           // koreksi admin
 }
 
+enum ParentTransactionSource {
+  INITIAL_BALANCE    // saldo awal registrasi
+  DEPOSIT            // top-up manual (simulasi BSI)
+  TRANSFER_TO_CHILD  // kirim ke rekening anak
+  ADJUSTMENT         // koreksi manual
+}
+
 enum ChoreStatus {
   DRAFT            // baru dibuat ortu, belum aktif
   ACTIVE           // sudah aktif, anak bisa lihat
@@ -114,6 +121,7 @@ model ParentProfile {
   familyLinks  FamilyLink[]
   choresCreated Chore[]      @relation("ChoreCreator")
   spendingLimitsSet SpendingLimit[] @relation("LimitSetBy")
+  ledger       ParentLedger[]
 
   @@map("parent_profiles")
 }
@@ -140,6 +148,7 @@ model ChildProfile {
   spendingLimits  SpendingLimit[] @relation("ChildLimits")
   infaqLogs       InfaqLog[]
   voucherRedemptions VoucherRedemption[]
+  parentTransfers ParentLedger[]  @relation("LedgerRelatedChild")
 
   @@map("child_profiles")
 }
@@ -358,6 +367,28 @@ model VoucherRedemption {
   voucher      VoucherCatalog @relation(fields: [voucherId], references: [id])
 
   @@map("voucher_redemptions")
+}
+
+// =============================================
+// PARENT LEDGER — Riwayat transaksi orang tua
+// INSERT ONLY — tidak ada UPDATE/DELETE
+// =============================================
+
+model ParentLedger {
+  id              String                 @id @default(uuid())
+  parentProfileId String                 @map("parent_profile_id")
+  type            TransactionType
+  source          ParentTransactionSource
+  amount          BigInt                 // selalu positif, type yang menentukan arah
+  balanceAfter    BigInt                 @map("balance_after")
+  relatedChildId  String?                @map("related_child_id") // diisi saat transfer ke anak
+  notes           String?
+  createdAt       DateTime               @default(now()) @map("created_at")
+
+  parentProfile ParentProfile  @relation(fields: [parentProfileId], references: [id])
+  relatedChild  ChildProfile?  @relation("LedgerRelatedChild", fields: [relatedChildId], references: [id])
+
+  @@map("parent_ledger")
 }
 
 // =============================================
