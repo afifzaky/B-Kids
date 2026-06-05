@@ -1,54 +1,18 @@
-version: '3.9'
-
 services:
-  # PostgreSQL lokal — untuk development tanpa konek Supabase
-  # Untuk production/staging: ganti DATABASE_URL ke Supabase
-  postgres:
-    image: postgres:16-alpine
-    container_name: byond_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: byond_kids
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: byond_local_2026
-    ports:
-      - '5432:5432'
-    volumes:
-      - byond_pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Backend API
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: byond_backend
     restart: unless-stopped
-    environment:
-      NODE_ENV: development
-      PORT: 4000
-      DATABASE_URL: postgresql://postgres:byond_local_2026@postgres:5432/byond_kids
+    env_file: .env
     ports:
       - '4000:4000'
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
-    command: npm run dev
-
-volumes:
-  byond_pg_data:
 
 # =============================================
 # Cara pakai:
-# docker-compose up -d postgres    ← hanya DB (recommended untuk dev)
-# docker-compose up                ← DB + Backend
-# docker-compose down              ← stop semua
-# docker-compose down -v           ← stop + hapus data
+# docker-compose up --build -d   ← build + jalankan (Supabase dari .env)
+# docker-compose up -d           ← jalankan tanpa rebuild
+# docker-compose logs -f         ← lihat logs
+# docker-compose down            ← stop
 # =============================================
