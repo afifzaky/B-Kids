@@ -42,6 +42,9 @@ router.post('/login/parent', loginLimiter, AuthController.loginParent);
 // POST /api/auth/login/child
 router.post('/login/child', loginLimiter, AuthController.loginChild);
 
+// POST /api/auth/login/admin
+router.post('/login/admin', loginLimiter, AuthController.loginAdmin);
+
 // POST /api/auth/refresh
 router.post('/refresh', AuthController.refreshToken);
 

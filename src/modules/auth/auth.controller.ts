@@ -5,6 +5,7 @@ import {
   createChildSchema,
   loginChildSchema,
   activateChildDeviceSchema,
+  loginAdminSchema,
   refreshTokenSchema,
   logoutSchema,
 } from './auth.validator';
@@ -126,6 +127,24 @@ export async function loginChild(
 }
 
 // =============================================
+// POST /api/auth/login/admin
+// =============================================
+
+export async function loginAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = loginAdminSchema.parse(req.body);
+    const result = await AuthService.loginAdmin(input);
+    res.status(200).json({ success: true, message: 'Login admin berhasil', data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// =============================================
 // POST /api/auth/refresh
 // =============================================
 
@@ -202,7 +221,9 @@ export async function getMe(
     // dan field sensitif (pinHash, nik) tidak boleh bocor ke client.
     let profile: Record<string, unknown> | null = null;
 
-    if (user.parentProfile) {
+    if (user.role === 'SUPER_ADMIN') {
+      profile = null; // admin tidak punya profile
+    } else if (user.parentProfile) {
       profile = {
         id: user.parentProfile.id,
         fullName: user.parentProfile.fullName,

@@ -14,6 +14,8 @@ import limitsRoutes from './modules/limits/limits.routes';
 import infaqRoutes from './modules/infaq/infaq.routes';
 import vouchersRoutes from './modules/vouchers/vouchers.routes';
 import parentRoutes from './modules/parent/parent.routes';
+import healthRoutes from './modules/health/health.routes';
+import adminRoutes from './modules/admin/admin.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -82,16 +84,9 @@ export function createApp(): Application {
   );
 
   // =============================================
-  // Health check (untuk monitoring)
+  // Health check
   // =============================================
-  app.get('/health', (_req, res) => {
-    res.json({
-      status: 'ok',
-      app: env.APP_NAME,
-      env: env.NODE_ENV,
-      timestamp: new Date().toISOString(),
-    });
-  });
+  app.use('/health', healthRoutes);
 
   // =============================================
   // Routes
@@ -104,6 +99,7 @@ export function createApp(): Application {
   app.use('/api/infaq', infaqRoutes);
   app.use('/api/vouchers', vouchersRoutes);
   app.use('/api/parent', parentRoutes);
+  app.use('/api/admin', adminRoutes);
 
   // =============================================
   // Error handlers (harus paling bawah)

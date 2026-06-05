@@ -81,6 +81,15 @@ export const activateChildDeviceSchema = z.object({
 });
 
 // =============================================
+// Admin: Login (email + password saja, tanpa PIN tabungan)
+// =============================================
+
+export const loginAdminSchema = z.object({
+  email: z.string().email('Format email tidak valid'),
+  password: z.string().min(1, 'Password wajib diisi'),
+});
+
+// =============================================
 // Refresh Token
 // =============================================
 
@@ -96,10 +105,11 @@ export const logoutSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token wajib untuk invalidasi sesi'),
 });
 
-export type RegisterParentInput    = z.infer<typeof registerParentSchema>;
-export type LoginParentInput       = z.infer<typeof loginParentSchema>;
-export type CreateChildInput       = z.infer<typeof createChildSchema>;
-export type LoginChildInput        = z.infer<typeof loginChildSchema>;
+export type RegisterParentInput      = z.infer<typeof registerParentSchema>;
+export type LoginParentInput         = z.infer<typeof loginParentSchema>;
+export type CreateChildInput         = z.infer<typeof createChildSchema>;
+export type LoginChildInput          = z.infer<typeof loginChildSchema>;
 export type ActivateChildDeviceInput = z.infer<typeof activateChildDeviceSchema>;
-export type RefreshTokenInput      = z.infer<typeof refreshTokenSchema>;
-export type LogoutInput            = z.infer<typeof logoutSchema>;
+export type LoginAdminInput          = z.infer<typeof loginAdminSchema>;
+export type RefreshTokenInput        = z.infer<typeof refreshTokenSchema>;
+export type LogoutInput              = z.infer<typeof logoutSchema>;

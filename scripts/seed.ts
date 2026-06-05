@@ -22,6 +22,7 @@ async function main() {
   console.log('🌱 Memulai seed data demo...\n');
 
   // Cleanup urutan penting karena ada foreign key
+  await prisma.auditLog.deleteMany();
   await prisma.choreSubmission.deleteMany();
   await prisma.chore.deleteMany();
   await prisma.pocketLedger.deleteMany();
@@ -39,6 +40,22 @@ async function main() {
   await prisma.user.deleteMany();
 
   console.log('🗑️  Data lama dihapus');
+
+  // =============================================
+  // 0. SUPER ADMIN
+  // =============================================
+  const adminPasswordHash = await bcrypt.hash('Admin@Byond2026!', SALT_ROUNDS);
+
+  await prisma.user.create({
+    data: {
+      email: 'admin@byond.id',
+      passwordHash: adminPasswordHash,
+      role: 'SUPER_ADMIN',
+      isActive: true,
+    },
+  });
+
+  console.log('✅ Super Admin: admin@byond.id (Password: Admin@Byond2026!)');
 
   // =============================================
   // 1. ORANG TUA — Budi Santoso
@@ -381,6 +398,10 @@ async function main() {
 ╔══════════════════════════════════════════════╗
 ║          SEED SELESAI — Data Demo            ║
 ╠══════════════════════════════════════════════╣
+║                                              ║
+║  🔐 SUPER ADMIN                              ║
+║     Email   : admin@byond.id                 ║
+║     Password: Admin@Byond2026!               ║
 ║                                              ║
 ║  👨 ORANG TUA                                ║
 ║     Email   : budi.santoso@demo.byond.id     ║

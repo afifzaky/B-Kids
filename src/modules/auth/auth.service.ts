@@ -17,6 +17,7 @@ import type {
   CreateChildInput,
   LoginChildInput,
   ActivateChildDeviceInput,
+  LoginAdminInput,
 } from './auth.validator';
 
 // =============================================
@@ -359,6 +360,35 @@ export async function loginChild(input: LoginChildInput) {
       fullName: childProfile.fullName,
       username: childProfile.username,
     },
+    ...tokens,
+  };
+}
+
+// =============================================
+// Admin: Login (email + password — tanpa savingsPin)
+// =============================================
+
+export async function loginAdmin(input: LoginAdminInput) {
+  const user = await prisma.user.findFirst({
+    where: { email: input.email, role: 'SUPER_ADMIN', isActive: true },
+  });
+
+  if (!user) {
+    await bcrypt.hash(input.password, env.BCRYPT_SALT_ROUNDS); // anti timing-attack
+    throw new AuthError('Email atau password salah');
+  }
+
+  const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash);
+  if (!isPasswordValid) {
+    throw new AuthError('Email atau password salah');
+  }
+
+  // Admin tidak memiliki profile — profileId diset kosong
+  const tokens = generateTokens({ sub: user.id, role: 'SUPER_ADMIN', profileId: '' });
+  await storeRefreshToken(user.id, tokens.refreshToken);
+
+  return {
+    user: { id: user.id, email: user.email, role: user.role },
     ...tokens,
   };
 }
