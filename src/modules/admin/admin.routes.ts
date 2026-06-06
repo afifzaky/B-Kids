@@ -48,4 +48,45 @@ router.patch('/children/:childId/status', asAuth(AdminController.setChildStatus)
 // GET /api/admin/audit-logs — riwayat semua aksi (filterable)
 router.get('/audit-logs', asAuth(AdminController.getAuditLogs));
 
+// =============================================
+// Voucher Management
+// =============================================
+
+// GET    /api/admin/vouchers                   — list semua voucher (termasuk nonaktif, paginated)
+// POST   /api/admin/vouchers                   — buat voucher baru
+// PUT    /api/admin/vouchers/:voucherId         — update voucher
+// DELETE /api/admin/vouchers/:voucherId         — hapus / soft-delete voucher
+// GET    /api/admin/vouchers/redemptions        — riwayat semua redemption
+
+// PENTING: route statis (/redemptions) harus di atas route dinamis (/:voucherId)
+router.get('/vouchers/redemptions', asAuth(AdminController.listRedemptions));
+router.get('/vouchers', asAuth(AdminController.listVouchers));
+router.post('/vouchers', asAuth(AdminController.createVoucher));
+router.put('/vouchers/:voucherId', asAuth(AdminController.updateVoucher));
+router.delete('/vouchers/:voucherId', asAuth(AdminController.deleteVoucher));
+
+// =============================================
+// Infaq Management
+// =============================================
+
+// GET  /api/admin/infaq       — semua log infaq (filterable)
+// GET  /api/admin/infaq/stats — statistik infaq per lembaga + periode
+router.get('/infaq/stats', asAuth(AdminController.getInfaqStats));
+router.get('/infaq', asAuth(AdminController.listInfaq));
+
+// =============================================
+// Infaq Institution Config Management
+// =============================================
+
+// GET   /api/admin/infaq/institutions                            — daftar lembaga (includeInactive=true untuk semua)
+// POST  /api/admin/infaq/institutions                            — tambah lembaga baru
+// PUT   /api/admin/infaq/institutions/:institutionId             — update data lembaga
+// PATCH /api/admin/infaq/institutions/:institutionId/status      — aktifkan / nonaktifkan lembaga
+
+// Statis sebelum dinamis
+router.get('/infaq/institutions', asAuth(AdminController.listInstitutions));
+router.post('/infaq/institutions', asAuth(AdminController.createInstitution));
+router.put('/infaq/institutions/:institutionId', asAuth(AdminController.updateInstitution));
+router.patch('/infaq/institutions/:institutionId/status', asAuth(AdminController.setInstitutionStatus));
+
 export default router;

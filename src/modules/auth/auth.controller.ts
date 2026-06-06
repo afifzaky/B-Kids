@@ -8,6 +8,12 @@ import {
   loginAdminSchema,
   refreshTokenSchema,
   logoutSchema,
+  updateParentProfileSchema,
+  changeEmailSchema,
+  changePasswordSchema,
+  changePinSchema,
+  changeChildPasswordSchema,
+  changeChildPinSchema,
 } from './auth.validator';
 import * as AuthService from './auth.service';
 import { AuthenticatedRequest } from '../../types';
@@ -227,6 +233,7 @@ export async function getMe(
       profile = {
         id: user.parentProfile.id,
         fullName: user.parentProfile.fullName,
+        avatarUrl: user.parentProfile.avatarUrl ?? null,
         bsiAccountNumber: user.parentProfile.bsiAccountNumber,
         balance: Number(user.parentProfile.dummyBalance) / 100,
         currency: 'IDR',
@@ -236,6 +243,7 @@ export async function getMe(
         id: user.childProfile.id,
         fullName: user.childProfile.fullName,
         username: user.childProfile.username,
+        avatar: user.childProfile.avatar ?? null,
         childAccountNumber: user.childProfile.childAccountNumber,
         isActive: user.childProfile.isActive,
         account: user.childProfile.account
@@ -260,4 +268,108 @@ export async function getMe(
   } catch (error) {
     next(error);
   }
+}
+
+// =============================================
+// PATCH /api/auth/me/profile — ubah nama & foto (parent only)
+// =============================================
+
+export async function updateProfile(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = updateParentProfileSchema.parse(req.body);
+    const data = await AuthService.updateParentProfile(req.user.profileId, input);
+    res.json({ success: true, message: 'Profil berhasil diperbarui', data });
+  } catch (error) { next(error); }
+}
+
+// =============================================
+// PATCH /api/auth/me/email — ganti email (parent only, butuh PIN)
+// =============================================
+
+export async function changeEmail(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = changeEmailSchema.parse(req.body);
+    const data = await AuthService.changeParentEmail(req.user.sub, req.user.profileId, input);
+    res.json({ success: true, ...data });
+  } catch (error) { next(error); }
+}
+
+// =============================================
+// PATCH /api/auth/me/password — ganti password (parent only, butuh old password)
+// =============================================
+
+export async function changePassword(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = changePasswordSchema.parse(req.body);
+    const data = await AuthService.changeParentPassword(req.user.sub, input);
+    res.json({ success: true, ...data });
+  } catch (error) { next(error); }
+}
+
+// =============================================
+// PATCH /api/auth/me/pin — ganti PIN tabungan (parent only, butuh old PIN)
+// =============================================
+
+export async function changePin(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = changePinSchema.parse(req.body);
+    const data = await AuthService.changeParentPin(req.user.profileId, input);
+    res.json({ success: true, ...data });
+  } catch (error) { next(error); }
+}
+
+// =============================================
+// PATCH /api/auth/children/:childId/password — parent ganti password anak
+// =============================================
+
+export async function changeChildPassword(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = changeChildPasswordSchema.parse(req.body);
+    const data = await AuthService.changeChildPasswordByParent(
+      req.user.profileId,
+      req.params.childId,
+      input,
+    );
+    res.json({ success: true, ...data });
+  } catch (error) { next(error); }
+}
+
+// =============================================
+// PATCH /api/auth/children/:childId/pin — parent ganti PIN anak
+// =============================================
+
+export async function changeChildPin(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = changeChildPinSchema.parse(req.body);
+    const data = await AuthService.changeChildPinByParent(
+      req.user.profileId,
+      req.params.childId,
+      input,
+    );
+    res.json({ success: true, ...data });
+  } catch (error) { next(error); }
 }

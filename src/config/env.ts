@@ -24,6 +24,11 @@ const envSchema = z.object({
 
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
 
+ 
+  CAPTCHA_ENABLED: z.string().default('false').transform(v => v === 'true'),
+  HCAPTCHA_SECRET_KEY: z.string().default(''),
+  HCAPTCHA_VERIFY_URL: z.string().default('https://api.hcaptcha.com/siteverify'),
+
   RATE_LIMIT_WINDOW_MS: z.string().default('900000').transform(Number),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform(Number),
   LOGIN_RATE_LIMIT_MAX: z.string().default('5').transform(Number),

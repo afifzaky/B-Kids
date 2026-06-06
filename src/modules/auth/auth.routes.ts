@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { env } from '../../config/env';
 import { verifyToken } from '../../middleware/auth';
 import { checkRole } from '../../middleware/role';
+import { requireCaptcha } from '../../middleware/captcha';
 import * as AuthController from './auth.controller';
 import { AuthenticatedRequest } from '../../types';
 
@@ -34,16 +35,16 @@ function asAuth(
 // =============================================
 
 // POST /api/auth/register/parent
-router.post('/register/parent', AuthController.registerParent);
+router.post('/register/parent', requireCaptcha, AuthController.registerParent);
 
 // POST /api/auth/login/parent
-router.post('/login/parent', loginLimiter, AuthController.loginParent);
+router.post('/login/parent', loginLimiter, requireCaptcha, AuthController.loginParent);
 
 // POST /api/auth/login/child
-router.post('/login/child', loginLimiter, AuthController.loginChild);
+router.post('/login/child', loginLimiter, requireCaptcha, AuthController.loginChild);
 
 // POST /api/auth/login/admin
-router.post('/login/admin', loginLimiter, AuthController.loginAdmin);
+router.post('/login/admin', loginLimiter, requireCaptcha, AuthController.loginAdmin);
 
 // POST /api/auth/refresh
 router.post('/refresh', AuthController.refreshToken);
@@ -58,7 +59,27 @@ router.post('/logout', AuthController.logout);
 // GET /api/auth/me
 router.get('/me', verifyToken, asAuth(AuthController.getMe));
 
-// POST /api/auth/children — Buat profil anak (parent only)
+// =============================================
+// Profile Management — Parent
+// =============================================
+
+// PATCH /api/auth/me/profile   — ubah nama & foto profil
+// PATCH /api/auth/me/email     — ganti email (butuh PIN konfirmasi)
+// PATCH /api/auth/me/password  — ganti password (butuh password lama)
+// PATCH /api/auth/me/pin       — ganti PIN tabungan (butuh PIN lama)
+router.patch('/me/profile',  verifyToken, checkRole('PARENT'), asAuth(AuthController.updateProfile));
+router.patch('/me/email',    verifyToken, checkRole('PARENT'), asAuth(AuthController.changeEmail));
+router.patch('/me/password', verifyToken, checkRole('PARENT'), asAuth(AuthController.changePassword));
+router.patch('/me/pin',      verifyToken, checkRole('PARENT'), asAuth(AuthController.changePin));
+
+// =============================================
+// Manajemen Akun Anak oleh Orang Tua
+// =============================================
+
+// POST  /api/auth/children                        — buat profil anak
+// PATCH /api/auth/children/:childId/password      — ganti password anak (butuh PIN ortu)
+// PATCH /api/auth/children/:childId/pin           — ganti PIN anak (butuh PIN ortu)
+
 router.post(
   '/children',
   verifyToken,
@@ -66,12 +87,18 @@ router.post(
   asAuth(AuthController.createChild),
 );
 
-// POST /api/auth/children/activate-device — Aktifkan perangkat anak (parent only)
-router.post(
-  '/children/activate-device',
+router.patch(
+  '/children/:childId/password',
   verifyToken,
   checkRole('PARENT'),
-  asAuth(AuthController.activateChildDevice),
+  asAuth(AuthController.changeChildPassword),
+);
+
+router.patch(
+  '/children/:childId/pin',
+  verifyToken,
+  checkRole('PARENT'),
+  asAuth(AuthController.changeChildPin),
 );
 
 export default router;

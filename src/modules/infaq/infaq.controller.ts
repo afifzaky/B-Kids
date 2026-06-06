@@ -1,7 +1,14 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../types';
 import * as InfaqService from './infaq.service';
 import { createInfaqSchema } from './infaq.validator';
+
+export async function getInstitutions(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const data = await InfaqService.listInstitutions();
+    res.json({ success: true, data });
+  } catch (error) { next(error); }
+}
 
 export async function createInfaq(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {

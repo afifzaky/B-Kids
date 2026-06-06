@@ -3,6 +3,16 @@ import { InsufficientBalanceError, NotFoundError } from '../../types';
 import { assertWithinSpendingLimit } from '../../utils/spending-limit';
 import type { CreateInfaqInput } from './infaq.validator';
 
+export async function listInstitutions() {
+  const institutions = await prisma.infaqInstitutionConfig.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+    select: { id: true, code: true, name: true, description: true, logoUrl: true, bankInfo: true },
+  });
+  return institutions;
+}
+
+// Infaq dibayar dari Tabungan Utama (ChildAccount.balance)
 export async function createInfaq(
   childProfileId: string,
   input: CreateInfaqInput,
@@ -10,56 +20,56 @@ export async function createInfaq(
 ) {
   const amountSen = BigInt(Math.round(input.amount * 100));
 
-  const account = await prisma.childAccount.findUnique({ where: { childProfileId } });
+  const [institution, account] = await Promise.all([
+    prisma.infaqInstitutionConfig.findFirst({
+      where: { id: input.institutionId, isActive: true },
+    }),
+    prisma.childAccount.findUnique({ where: { childProfileId } }),
+  ]);
+
+  if (!institution) throw new NotFoundError('Lembaga infaq');
   if (!account) throw new NotFoundError('Rekening anak');
+  if (account.balance < amountSen) throw new InsufficientBalanceError();
 
-  const pocket = await prisma.pocket.findFirst({
-    where: { id: input.sourcePocketId, accountId: account.id, isActive: true },
-  });
-  if (!pocket) throw new NotFoundError('Pocket');
+  // Cek spending limit (isInfaq=true → bisa dikecualikan oleh parent)
+  await assertWithinSpendingLimit(childProfileId, amountSen, true, null);
 
-  if (pocket.balance < amountSen) throw new InsufficientBalanceError();
-
-  // Cek spending limit — isInfaq=true agar parent bisa kecualikan
-  await assertWithinSpendingLimit(childProfileId, amountSen, true);
+  const newBalance = account.balance - amountSen;
 
   const infaqLog = await prisma.$transaction(async tx => {
-    const newPocketBalance = pocket.balance - amountSen;
-
-    await tx.pocket.update({
-      where: { id: pocket.id },
-      data: { balance: newPocketBalance },
+    await tx.childAccount.update({
+      where: { id: account.id },
+      data: { balance: newBalance },
     });
 
-    await tx.pocketLedger.create({
+    await tx.accountLedger.create({
       data: {
-        pocketId: pocket.id,
+        accountId: account.id,
         type: 'DEBIT',
         source: 'INFAQ',
         amount: amountSen,
-        balanceAfter: newPocketBalance,
+        balanceAfter: newBalance,
         triggeredBy,
-        notes: `Infaq ke ${input.institution === 'OTHER' ? input.institutionName : input.institution}`,
+        notes: `Infaq ke ${institution.name}${input.notes ? ': ' + input.notes : ''}`,
       },
     });
 
     return tx.infaqLog.create({
       data: {
         childProfileId,
-        institution: input.institution,
-        institutionName: input.institutionName ?? null,
+        institutionConfigId: institution.id,
         amount: amountSen,
-        sourcePocketId: pocket.id,
+        notes: input.notes ?? null,
       },
     });
   });
 
   return {
     id: infaqLog.id,
-    institution: infaqLog.institution,
-    institutionName: infaqLog.institutionName,
+    institution: { id: institution.id, name: institution.name },
     amount: Number(infaqLog.amount) / 100,
-    pocketName: pocket.name,
+    newTabunganBalance: Number(newBalance) / 100,
+    notes: infaqLog.notes,
     createdAt: infaqLog.createdAt,
   };
 }
@@ -67,6 +77,9 @@ export async function createInfaq(
 export async function listInfaq(childProfileId: string) {
   const logs = await prisma.infaqLog.findMany({
     where: { childProfileId },
+    include: {
+      institutionConfig: { select: { name: true, code: true, logoUrl: true } },
+    },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -74,18 +87,15 @@ export async function listInfaq(childProfileId: string) {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const monthlyTotal =
-    logs
-      .filter(l => l.createdAt >= monthStart)
-      .reduce((sum, l) => sum + Number(l.amount), 0) / 100;
+    logs.filter(l => l.createdAt >= monthStart).reduce((s, l) => s + Number(l.amount), 0) / 100;
 
   return {
     monthlyTotal,
     logs: logs.map(l => ({
       id: l.id,
-      institution: l.institution,
-      institutionName: l.institutionName,
+      institution: l.institutionConfig,
       amount: Number(l.amount) / 100,
-      sourcePocketId: l.sourcePocketId,
+      notes: l.notes,
       createdAt: l.createdAt,
     })),
   };

@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { env } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { trackActivity } from './middleware/activity';
+import { verifyToken } from './middleware/auth';
 
 // Modules
 import authRoutes from './modules/auth/auth.routes';
@@ -16,6 +18,7 @@ import vouchersRoutes from './modules/vouchers/vouchers.routes';
 import parentRoutes from './modules/parent/parent.routes';
 import healthRoutes from './modules/health/health.routes';
 import adminRoutes from './modules/admin/admin.routes';
+import childRoutes from './modules/child/child.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -84,6 +87,22 @@ export function createApp(): Application {
   );
 
   // =============================================
+  // Activity tracking — update lastActiveAt pada setiap request terautentikasi.
+  // verifyToken dipasang di sini hanya untuk decode token (tidak block non-auth routes).
+  // Masing-masing route tetap punya verifyToken-nya sendiri sebagai guard.
+  // =============================================
+  app.use((req, res, next) => {
+    const auth = req.headers.authorization;
+    if (auth?.startsWith('Bearer ')) {
+      verifyToken(req, res, () => {
+        trackActivity(req as Parameters<typeof trackActivity>[0], res, next);
+      });
+    } else {
+      next();
+    }
+  });
+
+  // =============================================
   // Health check
   // =============================================
   app.use('/health', healthRoutes);
@@ -100,6 +119,7 @@ export function createApp(): Application {
   app.use('/api/vouchers', vouchersRoutes);
   app.use('/api/parent', parentRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/child', childRoutes);
 
   // =============================================
   // Error handlers (harus paling bawah)

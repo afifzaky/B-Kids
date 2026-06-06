@@ -105,11 +105,63 @@ export const logoutSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token wajib untuk invalidasi sesi'),
 });
 
-export type RegisterParentInput      = z.infer<typeof registerParentSchema>;
-export type LoginParentInput         = z.infer<typeof loginParentSchema>;
-export type CreateChildInput         = z.infer<typeof createChildSchema>;
-export type LoginChildInput          = z.infer<typeof loginChildSchema>;
-export type ActivateChildDeviceInput = z.infer<typeof activateChildDeviceSchema>;
-export type LoginAdminInput          = z.infer<typeof loginAdminSchema>;
-export type RefreshTokenInput        = z.infer<typeof refreshTokenSchema>;
-export type LogoutInput              = z.infer<typeof logoutSchema>;
+// =============================================
+// Profile Management — Parent
+// =============================================
+
+const passwordSchema = z
+  .string()
+  .min(8, 'Password minimal 8 karakter')
+  .regex(/[A-Z]/, 'Password harus mengandung huruf besar')
+  .regex(/[0-9]/, 'Password harus mengandung angka');
+
+export const updateParentProfileSchema = z.object({
+  fullName: z.string().min(2, 'Nama minimal 2 karakter').max(100).optional(),
+  avatarUrl: z.string().url('Format URL tidak valid').optional(),
+}).refine(d => d.fullName !== undefined || d.avatarUrl !== undefined, {
+  message: 'Minimal satu field harus diisi (fullName atau avatarUrl)',
+});
+
+export const changeEmailSchema = z.object({
+  newEmail: z.string().email('Format email tidak valid'),
+  savingsPin: pinSchema,
+});
+
+export const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, 'Password lama wajib diisi'),
+  newPassword: passwordSchema,
+});
+
+export const changePinSchema = z.object({
+  oldPin: pinSchema,
+  newPin: pinSchema,
+});
+
+// =============================================
+// Child Account Management — by Parent
+// =============================================
+
+export const changeChildPasswordSchema = z.object({
+  newPassword: z.string().min(6, 'Password anak minimal 6 karakter').max(100),
+  parentPin: pinSchema,
+});
+
+export const changeChildPinSchema = z.object({
+  newPin: pinSchema,
+  parentPin: pinSchema,
+});
+
+export type RegisterParentInput         = z.infer<typeof registerParentSchema>;
+export type LoginParentInput            = z.infer<typeof loginParentSchema>;
+export type CreateChildInput            = z.infer<typeof createChildSchema>;
+export type LoginChildInput             = z.infer<typeof loginChildSchema>;
+export type ActivateChildDeviceInput    = z.infer<typeof activateChildDeviceSchema>;
+export type LoginAdminInput             = z.infer<typeof loginAdminSchema>;
+export type RefreshTokenInput           = z.infer<typeof refreshTokenSchema>;
+export type LogoutInput                 = z.infer<typeof logoutSchema>;
+export type UpdateParentProfileInput    = z.infer<typeof updateParentProfileSchema>;
+export type ChangeEmailInput            = z.infer<typeof changeEmailSchema>;
+export type ChangePasswordInput         = z.infer<typeof changePasswordSchema>;
+export type ChangePinInput              = z.infer<typeof changePinSchema>;
+export type ChangeChildPasswordInput    = z.infer<typeof changeChildPasswordSchema>;
+export type ChangeChildPinInput         = z.infer<typeof changeChildPinSchema>;

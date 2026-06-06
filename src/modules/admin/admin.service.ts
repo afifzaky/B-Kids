@@ -1,6 +1,16 @@
 import { prisma } from '../../config/database';
 import { AppError, NotFoundError, toRupiah } from '../../types';
-import type { SearchParentsInput, AdjustBalanceInput, AuditLogQueryInput } from './admin.validator';
+import type {
+  SearchParentsInput,
+  AdjustBalanceInput,
+  AuditLogQueryInput,
+  CreateVoucherInput,
+  UpdateVoucherInput,
+  VoucherQueryInput,
+  InfaqQueryInput,
+  CreateInstitutionInput,
+  UpdateInstitutionInput,
+} from './admin.validator';
 
 // =============================================
 // Helpers
@@ -605,5 +615,446 @@ export async function getAuditLogs(input: AuditLogQueryInput) {
       ipAddress: l.ipAddress,
       createdAt: l.createdAt,
     })),
+  };
+}
+
+// =============================================
+// VOUCHER CATALOG — Admin CRUD
+// =============================================
+
+function serializeVoucher(v: {
+  id: string;
+  name: string;
+  provider: string;
+  category: string;
+  voucherType: string;
+  price: bigint;
+  faceValue: bigint | null;
+  description: string | null;
+  imageUrl: string | null;
+  stock: number | null;
+  maxPerChild: number | null;
+  validFrom: Date | null;
+  validUntil: Date | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: v.id,
+    name: v.name,
+    provider: v.provider,
+    category: v.category,
+    voucherType: v.voucherType,
+    price: toRupiah(v.price),
+    faceValue: v.faceValue ? toRupiah(v.faceValue) : null,
+    description: v.description,
+    imageUrl: v.imageUrl,
+    stock: v.stock,
+    maxPerChild: v.maxPerChild,
+    validFrom: v.validFrom,
+    validUntil: v.validUntil,
+    isActive: v.isActive,
+    createdAt: v.createdAt,
+    updatedAt: v.updatedAt,
+  };
+}
+
+export async function listAdminVouchers(input: VoucherQueryInput) {
+  const { page, limit, category, voucherType, isActive, provider } = input;
+  const skip = (page - 1) * limit;
+
+  const isActiveFilter =
+    isActive === 'true' ? true : isActive === 'false' ? false : undefined;
+
+  const where = {
+    ...(category && { category: { contains: category, mode: 'insensitive' as const } }),
+    ...(voucherType && { voucherType }),
+    ...(isActiveFilter !== undefined && { isActive: isActiveFilter }),
+    ...(provider && { provider: { contains: provider, mode: 'insensitive' as const } }),
+  };
+
+  const [total, vouchers] = await Promise.all([
+    prisma.voucherCatalog.count({ where }),
+    prisma.voucherCatalog.findMany({
+      where,
+      orderBy: [{ category: 'asc' }, { price: 'asc' }],
+      skip,
+      take: limit,
+    }),
+  ]);
+
+  return {
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    vouchers: vouchers.map(serializeVoucher),
+  };
+}
+
+export async function createVoucher(input: CreateVoucherInput, adminUserId: string) {
+  const priceSen = BigInt(Math.round(input.price * 100));
+  const faceValueSen = input.faceValue ? BigInt(Math.round(input.faceValue * 100)) : null;
+
+  const voucher = await prisma.voucherCatalog.create({
+    data: {
+      name: input.name,
+      provider: input.provider,
+      category: input.category,
+      voucherType: input.voucherType,
+      price: priceSen,
+      faceValue: faceValueSen,
+      description: input.description ?? null,
+      imageUrl: input.imageUrl ?? null,
+      mockCode: `${input.provider.toUpperCase().replace(/\s+/g, '-')}-BYOND-${Date.now()}`,
+      stock: input.stock ?? null,
+      maxPerChild: input.maxPerChild ?? null,
+      validFrom: input.validFrom ? new Date(input.validFrom) : null,
+      validUntil: input.validUntil ? new Date(input.validUntil) : null,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: 'ADMIN_CREATE_VOUCHER',
+      entityType: 'VoucherCatalog',
+      entityId: voucher.id,
+      newValues: { name: voucher.name, price: input.price, voucherType: input.voucherType },
+    },
+  });
+
+  return serializeVoucher(voucher);
+}
+
+export async function updateVoucher(
+  voucherId: string,
+  input: UpdateVoucherInput,
+  adminUserId: string,
+) {
+  const existing = await prisma.voucherCatalog.findUnique({ where: { id: voucherId } });
+  if (!existing) throw new NotFoundError('Voucher');
+
+  const priceSen = input.price !== undefined ? BigInt(Math.round(input.price * 100)) : undefined;
+  const faceValueSen =
+    input.faceValue !== undefined ? BigInt(Math.round(input.faceValue * 100)) : undefined;
+
+  const updated = await prisma.voucherCatalog.update({
+    where: { id: voucherId },
+    data: {
+      ...(input.name !== undefined && { name: input.name }),
+      ...(input.provider !== undefined && { provider: input.provider }),
+      ...(input.category !== undefined && { category: input.category }),
+      ...(input.voucherType !== undefined && { voucherType: input.voucherType }),
+      ...(priceSen !== undefined && { price: priceSen }),
+      ...(faceValueSen !== undefined && { faceValue: faceValueSen }),
+      ...(input.description !== undefined && { description: input.description }),
+      ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
+      ...(input.stock !== undefined && { stock: input.stock }),
+      ...(input.maxPerChild !== undefined && { maxPerChild: input.maxPerChild }),
+      ...(input.validFrom !== undefined && { validFrom: new Date(input.validFrom) }),
+      ...(input.validUntil !== undefined && { validUntil: new Date(input.validUntil) }),
+      ...(input.isActive !== undefined && { isActive: input.isActive }),
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: 'ADMIN_UPDATE_VOUCHER',
+      entityType: 'VoucherCatalog',
+      entityId: voucherId,
+      oldValues: { name: existing.name, price: toRupiah(existing.price), isActive: existing.isActive },
+      newValues: { ...input },
+    },
+  });
+
+  return serializeVoucher(updated);
+}
+
+export async function deleteVoucher(voucherId: string, adminUserId: string) {
+  const existing = await prisma.voucherCatalog.findUnique({ where: { id: voucherId } });
+  if (!existing) throw new NotFoundError('Voucher');
+
+  // Cek apakah sudah pernah ditukar — soft delete lebih aman
+  const redemptionCount = await prisma.voucherRedemption.count({ where: { voucherId } });
+  if (redemptionCount > 0) {
+    // Tidak bisa hapus voucher yang sudah dipakai — nonaktifkan saja
+    await prisma.voucherCatalog.update({
+      where: { id: voucherId },
+      data: { isActive: false },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: adminUserId,
+        action: 'ADMIN_DEACTIVATE_VOUCHER',
+        entityType: 'VoucherCatalog',
+        entityId: voucherId,
+        newValues: { reason: 'Sudah ada redemption — soft delete (isActive=false)' },
+      },
+    });
+
+    return { deleted: false, deactivated: true, message: 'Voucher sudah pernah ditukar, status diubah ke nonaktif' };
+  }
+
+  await prisma.voucherCatalog.delete({ where: { id: voucherId } });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: 'ADMIN_DELETE_VOUCHER',
+      entityType: 'VoucherCatalog',
+      entityId: voucherId,
+      oldValues: { name: existing.name },
+    },
+  });
+
+  return { deleted: true, deactivated: false, message: 'Voucher berhasil dihapus' };
+}
+
+export async function listVoucherRedemptions(page: number, limit: number, voucherId?: string) {
+  const skip = (page - 1) * limit;
+  const where = voucherId ? { voucherId } : {};
+
+  const [total, redemptions] = await Promise.all([
+    prisma.voucherRedemption.count({ where }),
+    prisma.voucherRedemption.findMany({
+      where,
+      include: {
+        voucher: { select: { name: true, provider: true, voucherType: true } },
+        childProfile: { select: { fullName: true, username: true } },
+      },
+      orderBy: { redeemedAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+  ]);
+
+  return {
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    redemptions: redemptions.map(r => ({
+      id: r.id,
+      child: { id: r.childProfileId, fullName: r.childProfile.fullName, username: r.childProfile.username },
+      voucher: r.voucher,
+      amount: toRupiah(r.amount),
+      mockCode: r.mockCodeIssued,
+      redeemedAt: r.redeemedAt,
+    })),
+  };
+}
+
+// =============================================
+// INFAQ — Admin Read + Stats
+// =============================================
+
+// =============================================
+// INFAQ INSTITUTION CONFIG — Admin CRUD
+// =============================================
+
+export async function listAdminInstitutions(includeInactive = false) {
+  const institutions = await prisma.infaqInstitutionConfig.findMany({
+    where: includeInactive ? {} : { isActive: true },
+    include: {
+      _count: { select: { infaqLogs: true } },
+      infaqLogs: { select: { amount: true } },
+    },
+    orderBy: { name: 'asc' },
+  });
+
+  return institutions.map(inst => ({
+    id: inst.id,
+    code: inst.code,
+    name: inst.name,
+    description: inst.description,
+    logoUrl: inst.logoUrl,
+    bankInfo: inst.bankInfo,
+    isActive: inst.isActive,
+    createdAt: inst.createdAt,
+    stats: {
+      totalDonors: inst._count.infaqLogs,
+      totalRp: toRupiah(inst.infaqLogs.reduce((s, l) => s + l.amount, 0n)),
+    },
+  }));
+}
+
+export async function createInstitution(input: CreateInstitutionInput, adminUserId: string) {
+  const existing = await prisma.infaqInstitutionConfig.findUnique({ where: { code: input.code } });
+  if (existing) {
+    throw new AppError(`Kode lembaga "${input.code}" sudah digunakan`, 409, 'DUPLICATE_CODE');
+  }
+
+  const institution = await prisma.infaqInstitutionConfig.create({
+    data: {
+      code: input.code,
+      name: input.name,
+      description: input.description ?? null,
+      logoUrl: input.logoUrl ?? null,
+      bankInfo: input.bankInfo ?? null,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: 'ADMIN_CREATE_INSTITUTION',
+      entityType: 'InfaqInstitutionConfig',
+      entityId: institution.id,
+      newValues: { code: institution.code, name: institution.name },
+    },
+  });
+
+  return institution;
+}
+
+export async function updateInstitution(
+  institutionId: string,
+  input: UpdateInstitutionInput,
+  adminUserId: string,
+) {
+  const existing = await prisma.infaqInstitutionConfig.findUnique({ where: { id: institutionId } });
+  if (!existing) throw new NotFoundError('Lembaga infaq');
+
+  if (input.code && input.code !== existing.code) {
+    const conflict = await prisma.infaqInstitutionConfig.findUnique({ where: { code: input.code } });
+    if (conflict) throw new AppError(`Kode "${input.code}" sudah digunakan`, 409, 'DUPLICATE_CODE');
+  }
+
+  const updated = await prisma.infaqInstitutionConfig.update({
+    where: { id: institutionId },
+    data: {
+      ...(input.code && { code: input.code }),
+      ...(input.name && { name: input.name }),
+      ...(input.description !== undefined && { description: input.description }),
+      ...(input.logoUrl !== undefined && { logoUrl: input.logoUrl }),
+      ...(input.bankInfo !== undefined && { bankInfo: input.bankInfo }),
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: 'ADMIN_UPDATE_INSTITUTION',
+      entityType: 'InfaqInstitutionConfig',
+      entityId: institutionId,
+      oldValues: { name: existing.name },
+      newValues: input,
+    },
+  });
+
+  return updated;
+}
+
+export async function setInstitutionStatus(
+  institutionId: string,
+  isActive: boolean,
+  adminUserId: string,
+) {
+  const existing = await prisma.infaqInstitutionConfig.findUnique({ where: { id: institutionId } });
+  if (!existing) throw new NotFoundError('Lembaga infaq');
+
+  await prisma.infaqInstitutionConfig.update({
+    where: { id: institutionId },
+    data: { isActive },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      action: isActive ? 'ADMIN_ACTIVATE_INSTITUTION' : 'ADMIN_DEACTIVATE_INSTITUTION',
+      entityType: 'InfaqInstitutionConfig',
+      entityId: institutionId,
+    },
+  });
+
+  return {
+    id: institutionId,
+    name: existing.name,
+    isActive,
+    message: `Lembaga "${existing.name}" berhasil ${isActive ? 'diaktifkan' : 'dinonaktifkan'}`,
+  };
+}
+
+export async function listAdminInfaq(input: InfaqQueryInput) {
+  const { page, limit, institutionId, childProfileId, from, to } = input;
+  const skip = (page - 1) * limit;
+
+  const where = {
+    ...(institutionId && { institutionConfigId: institutionId }),
+    ...(childProfileId && { childProfileId }),
+    ...((from || to) && {
+      createdAt: {
+        ...(from && { gte: new Date(from) }),
+        ...(to && { lte: new Date(to) }),
+      },
+    }),
+  };
+
+  const [total, logs] = await Promise.all([
+    prisma.infaqLog.count({ where }),
+    prisma.infaqLog.findMany({
+      where,
+      include: {
+        childProfile: { select: { fullName: true, username: true } },
+        institutionConfig: { select: { name: true, code: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+  ]);
+
+  return {
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    logs: logs.map(l => ({
+      id: l.id,
+      child: { id: l.childProfileId, fullName: l.childProfile.fullName, username: l.childProfile.username },
+      institution: l.institutionConfig,
+      amount: toRupiah(l.amount),
+      notes: l.notes,
+      createdAt: l.createdAt,
+    })),
+  };
+}
+
+export async function getInfaqStats() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+
+  const [totalAllTime, totalMonth, totalYear, institutions] = await Promise.all([
+    prisma.infaqLog.aggregate({ _sum: { amount: true }, _count: true }),
+    prisma.infaqLog.aggregate({
+      _sum: { amount: true },
+      _count: true,
+      where: { createdAt: { gte: monthStart } },
+    }),
+    prisma.infaqLog.aggregate({
+      _sum: { amount: true },
+      _count: true,
+      where: { createdAt: { gte: yearStart } },
+    }),
+    prisma.infaqInstitutionConfig.findMany({
+      include: {
+        infaqLogs: { select: { amount: true } },
+        _count: { select: { infaqLogs: true } },
+      },
+      orderBy: { name: 'asc' },
+    }),
+  ]);
+
+  return {
+    summary: {
+      allTime: { totalRp: toRupiah(totalAllTime._sum.amount ?? 0n), count: totalAllTime._count },
+      thisMonth: { totalRp: toRupiah(totalMonth._sum.amount ?? 0n), count: totalMonth._count },
+      thisYear: { totalRp: toRupiah(totalYear._sum.amount ?? 0n), count: totalYear._count },
+    },
+    byInstitution: institutions.map(inst => ({
+      id: inst.id,
+      code: inst.code,
+      name: inst.name,
+      isActive: inst.isActive,
+      totalRp: toRupiah(inst.infaqLogs.reduce((s, l) => s + l.amount, 0n)),
+      count: inst._count.infaqLogs,
+    })),
+    generatedAt: new Date().toISOString(),
   };
 }

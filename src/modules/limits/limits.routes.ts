@@ -6,7 +6,9 @@ import * as LimitsController from './limits.controller';
 
 const router = Router();
 
+
 router.get('/:childId', verifyToken, checkRole('PARENT'), asAuth(LimitsController.getLimits));
 router.put('/:childId', verifyToken, checkRole('PARENT'), asAuth(LimitsController.setLimits));
+router.post('/:childId/category', verifyToken, checkRole('PARENT'), asAuth(LimitsController.setCategoryLimit));
 
 export default router;

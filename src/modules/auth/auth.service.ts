@@ -18,6 +18,12 @@ import type {
   LoginChildInput,
   ActivateChildDeviceInput,
   LoginAdminInput,
+  UpdateParentProfileInput,
+  ChangeEmailInput,
+  ChangePasswordInput,
+  ChangePinInput,
+  ChangeChildPasswordInput,
+  ChangeChildPinInput,
 } from './auth.validator';
 
 // =============================================
@@ -160,6 +166,55 @@ export async function registerParent(input: RegisterParentInput) {
 }
 
 // =============================================
+// Brute-force helpers
+// =============================================
+
+const MAX_ATTEMPTS = 5;
+const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 menit
+
+async function checkAndHandleLock(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { lockedUntil: true, loginAttempts: true },
+  });
+  if (!user) return;
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    const waitSec = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 1000);
+    throw new AppError(
+      `Akun dikunci sementara karena terlalu banyak percobaan gagal. Coba lagi dalam ${waitSec} detik.`,
+      423,
+      'ACCOUNT_LOCKED',
+    );
+  }
+}
+
+async function recordFailedAttempt(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { loginAttempts: true },
+  });
+  if (!user) return;
+
+  const newAttempts = user.loginAttempts + 1;
+  const shouldLock = newAttempts >= MAX_ATTEMPTS;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      loginAttempts: newAttempts,
+      lockedUntil: shouldLock ? new Date(Date.now() + LOCK_DURATION_MS) : undefined,
+    },
+  });
+}
+
+async function resetLoginAttempts(userId: string): Promise<void> {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { loginAttempts: 0, lockedUntil: null },
+  });
+}
+
+// =============================================
 // Parent: Login (Email + Password → PIN Tabungan)
 // =============================================
 
@@ -174,18 +229,28 @@ export async function loginParent(input: LoginParentInput) {
     throw new AuthError('Email atau password salah');
   }
 
+  await checkAndHandleLock(user.id);
+
   const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash);
   if (!isPasswordValid) {
-    throw new AuthError('Email atau password salah');
+    await recordFailedAttempt(user.id);
+    const remaining = MAX_ATTEMPTS - (user.loginAttempts + 1);
+    throw new AuthError(
+      remaining > 0
+        ? `Email atau password salah. ${remaining} percobaan tersisa sebelum akun dikunci.`
+        : 'Email atau password salah. Akun dikunci 15 menit.',
+    );
   }
 
-  // Verifikasi PIN Tabungan (hanya jika sudah di-set — guard untuk data lama)
   if (user.parentProfile.pinHash && user.parentProfile.pinHash !== '') {
     const isPinValid = await bcrypt.compare(input.savingsPin, user.parentProfile.pinHash);
     if (!isPinValid) {
+      await recordFailedAttempt(user.id);
       throw new AuthError('PIN Tabungan salah');
     }
   }
+
+  await resetLoginAttempts(user.id);
 
   const tokens = generateTokens({
     sub: user.id,
@@ -337,14 +402,24 @@ export async function loginChild(input: LoginChildInput) {
     throw new AuthError('Username, password, atau PIN salah');
   }
 
+  await checkAndHandleLock(childProfile.user.id);
+
   const [isPasswordValid, isPinValid] = await Promise.all([
     bcrypt.compare(input.password, childProfile.user.passwordHash),
     bcrypt.compare(input.pin, childProfile.pinHash),
   ]);
 
   if (!isPasswordValid || !isPinValid) {
-    throw new AuthError('Username, password, atau PIN salah');
+    await recordFailedAttempt(childProfile.user.id);
+    const remaining = MAX_ATTEMPTS - (childProfile.user.loginAttempts + 1);
+    throw new AuthError(
+      remaining > 0
+        ? `Username, password, atau PIN salah. ${remaining} percobaan tersisa.`
+        : 'Terlalu banyak percobaan. Akun dikunci 15 menit.',
+    );
   }
+
+  await resetLoginAttempts(childProfile.user.id);
 
   const tokens = generateTokens({
     sub: childProfile.user.id,
@@ -378,10 +453,15 @@ export async function loginAdmin(input: LoginAdminInput) {
     throw new AuthError('Email atau password salah');
   }
 
+  await checkAndHandleLock(user.id);
+
   const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash);
   if (!isPasswordValid) {
+    await recordFailedAttempt(user.id);
     throw new AuthError('Email atau password salah');
   }
+
+  await resetLoginAttempts(user.id);
 
   // Admin tidak memiliki profile — profileId diset kosong
   const tokens = generateTokens({ sub: user.id, role: 'SUPER_ADMIN', profileId: '' });
@@ -439,6 +519,15 @@ export async function refreshAccessToken(refreshToken: string) {
     throw new AuthError('Sesi telah berakhir. Silakan login ulang');
   }
 
+  // Cek inaktivitas: jika tidak ada aktivitas selama durasi access token (8 menit),
+  // tolak refresh dan paksa login ulang — mencegah sesi tetap hidup tanpa interaksi
+  const inactiveMs = Date.now() - storedToken.lastActiveAt.getTime();
+  const maxInactiveMs = parseDurationMs(env.JWT_EXPIRES_IN);
+  if (inactiveMs > maxInactiveMs) {
+    await prisma.refreshToken.delete({ where: { tokenHash } });
+    throw new AuthError('Sesi berakhir karena tidak aktif. Silakan login ulang');
+  }
+
   const user = await prisma.user.findFirst({
     where: { id: payload.sub, isActive: true },
     include: { parentProfile: true, childProfile: true },
@@ -458,4 +547,161 @@ export async function refreshAccessToken(refreshToken: string) {
   });
 
   return tokens;
+}
+
+// =============================================
+// Profile Management — Parent: Update Profil
+// =============================================
+
+export async function updateParentProfile(
+  parentProfileId: string,
+  input: UpdateParentProfileInput,
+) {
+  const updated = await prisma.parentProfile.update({
+    where: { id: parentProfileId },
+    data: {
+      ...(input.fullName !== undefined ? { fullName: input.fullName } : {}),
+      ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
+    },
+    select: { id: true, fullName: true, avatarUrl: true },
+  });
+  return updated;
+}
+
+// =============================================
+// Profile Management — Parent: Ganti Email
+// =============================================
+
+export async function changeParentEmail(
+  userId: string,
+  parentProfileId: string,
+  input: ChangeEmailInput,
+) {
+  const parentProfile = await prisma.parentProfile.findUnique({ where: { id: parentProfileId } });
+  if (!parentProfile) throw new NotFoundError('Profil orang tua');
+
+  if (!parentProfile.pinHash || parentProfile.pinHash === '') {
+    throw new AppError('PIN belum diset. Hubungi dukungan.', 422, 'PIN_NOT_SET');
+  }
+  const isPinValid = await bcrypt.compare(input.savingsPin, parentProfile.pinHash);
+  if (!isPinValid) throw new AuthError('PIN Tabungan salah');
+
+  const existing = await prisma.user.findFirst({ where: { email: input.newEmail } });
+  if (existing) throw new AppError('Email sudah digunakan akun lain', 409, 'DUPLICATE_EMAIL');
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { email: input.newEmail },
+  });
+
+  return { message: 'Email berhasil diubah', newEmail: input.newEmail };
+}
+
+// =============================================
+// Profile Management — Parent: Ganti Password
+// =============================================
+
+export async function changeParentPassword(userId: string, input: ChangePasswordInput) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new NotFoundError('User');
+
+  const isOldPasswordValid = await bcrypt.compare(input.oldPassword, user.passwordHash);
+  if (!isOldPasswordValid) throw new AuthError('Password lama salah');
+
+  const newPasswordHash = await bcrypt.hash(input.newPassword, env.BCRYPT_SALT_ROUNDS);
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash: newPasswordHash } });
+
+  // Invalidasi semua refresh token — paksa login ulang di semua perangkat
+  await prisma.refreshToken.deleteMany({ where: { userId } });
+
+  return { message: 'Password berhasil diubah. Silakan login ulang.' };
+}
+
+// =============================================
+// Profile Management — Parent: Ganti PIN Tabungan
+// =============================================
+
+export async function changeParentPin(parentProfileId: string, input: ChangePinInput) {
+  const parentProfile = await prisma.parentProfile.findUnique({ where: { id: parentProfileId } });
+  if (!parentProfile) throw new NotFoundError('Profil orang tua');
+
+  if (!parentProfile.pinHash || parentProfile.pinHash === '') {
+    throw new AppError('PIN belum diset. Hubungi dukungan.', 422, 'PIN_NOT_SET');
+  }
+  const isOldPinValid = await bcrypt.compare(input.oldPin, parentProfile.pinHash);
+  if (!isOldPinValid) throw new AuthError('PIN lama salah');
+
+  const newPinHash = await bcrypt.hash(input.newPin, env.BCRYPT_SALT_ROUNDS);
+  await prisma.parentProfile.update({
+    where: { id: parentProfileId },
+    data: { pinHash: newPinHash },
+  });
+
+  return { message: 'PIN Tabungan berhasil diubah' };
+}
+
+// =============================================
+// Child Account Mgmt — by Parent: Ganti Password Anak
+// =============================================
+
+export async function changeChildPasswordByParent(
+  parentProfileId: string,
+  childProfileId: string,
+  input: ChangeChildPasswordInput,
+) {
+  // Validasi: anak harus terdaftar dalam keluarga ini
+  const link = await prisma.familyLink.findFirst({ where: { parentProfileId, childProfileId } });
+  if (!link) throw new ForbiddenError('Anak tidak terdaftar dalam keluarga ini');
+
+  // Verifikasi PIN orang tua
+  const parentProfile = await prisma.parentProfile.findUnique({ where: { id: parentProfileId } });
+  if (!parentProfile) throw new NotFoundError('Profil orang tua');
+
+  const isPinValid = await bcrypt.compare(input.parentPin, parentProfile.pinHash);
+  if (!isPinValid) throw new AuthError('PIN Tabungan orang tua salah');
+
+  // Update password anak
+  const childProfile = await prisma.childProfile.findUnique({
+    where: { id: childProfileId },
+    select: { userId: true, fullName: true },
+  });
+  if (!childProfile) throw new NotFoundError('Profil anak');
+
+  const newPasswordHash = await bcrypt.hash(input.newPassword, env.BCRYPT_SALT_ROUNDS);
+  await prisma.user.update({ where: { id: childProfile.userId }, data: { passwordHash: newPasswordHash } });
+
+  // Invalidasi semua sesi anak
+  await prisma.refreshToken.deleteMany({ where: { userId: childProfile.userId } });
+
+  return { message: `Password ${childProfile.fullName} berhasil diubah` };
+}
+
+// =============================================
+// Child Account Mgmt — by Parent: Ganti PIN Anak
+// =============================================
+
+export async function changeChildPinByParent(
+  parentProfileId: string,
+  childProfileId: string,
+  input: ChangeChildPinInput,
+) {
+  const link = await prisma.familyLink.findFirst({ where: { parentProfileId, childProfileId } });
+  if (!link) throw new ForbiddenError('Anak tidak terdaftar dalam keluarga ini');
+
+  const parentProfile = await prisma.parentProfile.findUnique({ where: { id: parentProfileId } });
+  if (!parentProfile) throw new NotFoundError('Profil orang tua');
+
+  const isPinValid = await bcrypt.compare(input.parentPin, parentProfile.pinHash);
+  if (!isPinValid) throw new AuthError('PIN Tabungan orang tua salah');
+
+  const childProfile = await prisma.childProfile.findUnique({
+    where: { id: childProfileId },
+    select: { fullName: true },
+  });
+  if (!childProfile) throw new NotFoundError('Profil anak');
+
+  const newPinHash = await bcrypt.hash(input.newPin, env.BCRYPT_SALT_ROUNDS);
+  await prisma.childProfile.update({ where: { id: childProfileId }, data: { pinHash: newPinHash } });
+
+  return { message: `PIN ${childProfile.fullName} berhasil diubah` };
 }

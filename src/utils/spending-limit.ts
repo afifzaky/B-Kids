@@ -15,23 +15,28 @@ function getPeriodStart(period: SpendingLimitPeriod): Date {
   }
   if (period === 'WEEKLY') {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const dow = d.getDay(); // 0=Minggu
-    d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1)); // mundur ke Senin
+    const dow = d.getDay();
+    d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
     return d;
   }
   return new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
 /**
- * Cek apakah transaksi sebesar `amount` masih dalam batas spending limit anak.
- * Spending dihitung dari PocketLedger DEBIT (VOUCHER_PURCHASE + INFAQ jika tidak dikecualikan).
+ * Cek apakah transaksi sebesar `amount` masih dalam spending limit anak.
  *
- * @param isInfaq - true jika transaksi ini adalah infaq (untuk menerapkan excludeInfaq)
+ * Spending dihitung dari AccountLedger (tabungan utama) DEBIT:
+ *  - VOUCHER_PURCHASE — selalu dihitung kecuali ada limit per voucherType
+ *  - INFAQ           — dihitung jika excludeInfaq = false
+ *
+ * @param voucherType - tipe voucher yang dibeli (null jika bukan voucher)
+ * @param isInfaq     - true jika transaksi ini adalah infaq
  */
 export async function assertWithinSpendingLimit(
   childProfileId: string,
   amount: bigint,
   isInfaq = false,
+  voucherType: string | null = null,
 ): Promise<void> {
   const limits = await prisma.spendingLimit.findMany({
     where: { childProfileId, isActive: true },
@@ -39,42 +44,43 @@ export async function assertWithinSpendingLimit(
 
   if (limits.length === 0) return;
 
-  const account = await prisma.childAccount.findUnique({
-    where: { childProfileId },
-    include: { pockets: { select: { id: true } } },
-  });
-
-  if (!account || account.pockets.length === 0) return;
-
-  const pocketIds = account.pockets.map(p => p.id);
+  const account = await prisma.childAccount.findUnique({ where: { childProfileId } });
+  if (!account) return;
 
   for (const limit of limits) {
-    // Jika infaq dikecualikan dari limit DAN ini adalah transaksi infaq → skip
+    // Infaq dikecualikan dari limit ini → skip
     if (isInfaq && limit.excludeInfaq) continue;
+
+    // Limit per voucherType: hanya berlaku untuk tipe voucher yang sesuai
+    if (limit.voucherType !== null) {
+      if (!voucherType || voucherType !== limit.voucherType) continue;
+    }
 
     const periodStart = getPeriodStart(limit.period);
 
-    // Hitung pengeluaran aktual (voucher + infaq jika dihitung)
-    const sources = limit.excludeInfaq
-      ? (['VOUCHER_PURCHASE'] as const)
-      : (['VOUCHER_PURCHASE', 'INFAQ'] as const);
+    // Sumber yang dihitung: VOUCHER_PURCHASE + INFAQ (jika tidak dikecualikan)
+    const sources: ('VOUCHER_PURCHASE' | 'INFAQ')[] = ['VOUCHER_PURCHASE'];
+    if (!limit.excludeInfaq) sources.push('INFAQ');
 
-    const result = await prisma.pocketLedger.aggregate({
+    const result = await prisma.accountLedger.aggregate({
       _sum: { amount: true },
       where: {
-        pocketId: { in: pocketIds },
+        accountId: account.id,
         type: 'DEBIT',
-        source: { in: [...sources] },
+        source: { in: sources },
         createdAt: { gte: periodStart },
       },
     });
 
-    const alreadySpent = result._sum.amount ?? BigInt(0);
+    const alreadySpent = result._sum.amount ?? 0n;
 
     if (alreadySpent + amount > limit.limitAmount) {
       const sisa = Number(limit.limitAmount - alreadySpent) / 100;
+      const label = limit.voucherType
+        ? `${limit.voucherType.toLowerCase().replace('_', ' ')} ${PERIOD_LABELS[limit.period]}`
+        : PERIOD_LABELS[limit.period];
       throw new SpendingLimitExceededError(
-        `${PERIOD_LABELS[limit.period]} (sisa Rp ${sisa.toLocaleString('id-ID')})`,
+        `${label} (sisa Rp ${Math.max(0, sisa).toLocaleString('id-ID')})`,
       );
     }
   }

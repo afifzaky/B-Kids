@@ -36,10 +36,55 @@ async function main() {
   await prisma.childProfile.deleteMany();
   await prisma.parentProfile.deleteMany();
   await prisma.voucherCatalog.deleteMany();
-  await prisma.auditLog.deleteMany();
+  await prisma.infaqInstitutionConfig.deleteMany();
   await prisma.user.deleteMany();
 
   console.log('🗑️  Data lama dihapus');
+
+  // =============================================
+  // 0. LEMBAGA INFAQ — Dikelola Admin
+  // =============================================
+  await prisma.infaqInstitutionConfig.createMany({
+    data: [
+      {
+        code: 'BSI_MASLAHAT',
+        name: 'BSI Maslahat',
+        description: 'Lembaga amil zakat dan wakaf afiliasi Bank Syariah Indonesia',
+        bankInfo: 'BSI - 7155555001 a.n. BSI Maslahat',
+        isActive: true,
+      },
+      {
+        code: 'BAZNAS',
+        name: 'BAZNAS',
+        description: 'Badan Amil Zakat Nasional — badan pemerintah untuk pengelolaan zakat',
+        bankInfo: 'BSI - 7155555002 a.n. BAZNAS',
+        isActive: true,
+      },
+      {
+        code: 'LAZISNU',
+        name: 'LAZISNU',
+        description: 'Lembaga Amil Zakat Infaq Sedekah Nahdlatul Ulama',
+        bankInfo: 'BSI - 7155555003 a.n. LAZISNU',
+        isActive: true,
+      },
+      {
+        code: 'LAZISMU',
+        name: 'LAZISMU',
+        description: 'Lembaga Amil Zakat Infaq dan Sedekah Muhammadiyah',
+        bankInfo: 'BSI - 7155555004 a.n. LAZISMU',
+        isActive: true,
+      },
+      {
+        code: 'RUMAH_ZAKAT',
+        name: 'Rumah Zakat',
+        description: 'Lembaga amil zakat nasional yang fokus pada program pemberdayaan masyarakat',
+        bankInfo: 'BSI - 7155555005 a.n. Rumah Zakat',
+        isActive: true,
+      },
+    ],
+  });
+
+  console.log('✅ Lembaga infaq: 5 lembaga ditambahkan (BSI Maslahat, BAZNAS, LAZISNU, LAZISMU, Rumah Zakat)');
 
   // =============================================
   // 0. SUPER ADMIN
@@ -61,6 +106,7 @@ async function main() {
   // 1. ORANG TUA — Budi Santoso
   // =============================================
   const parentPasswordHash = await bcrypt.hash('Byond@2026', SALT_ROUNDS);
+  const parentPinHash = await bcrypt.hash('123456', SALT_ROUNDS);
 
   const parentUser = await prisma.user.create({
     data: {
@@ -78,6 +124,7 @@ async function main() {
       nik: '3171234567890001',
       dateOfBirth: new Date('1985-04-15'),
       bsiAccountNumber: '7123456789',
+      pinHash: parentPinHash,
       dummyBalance: BigInt(10_000_000_00), // Rp 10.000.000
     },
   });
@@ -102,6 +149,7 @@ async function main() {
       userId: aishaUser.id,
       fullName: 'Aisha Ramadhani',
       dateOfBirth: new Date('2012-07-20'),
+      username: 'aisha_byond',
       pinHash: pin1Hash,
       deviceId: 'demo-device-aisha-001',
       createdByParentId: parentProfile.id,
@@ -214,6 +262,7 @@ async function main() {
       userId: rizkyUser.id,
       fullName: 'Rizky Maulana',
       dateOfBirth: new Date('2016-03-10'),
+      username: 'rizky_byond',
       pinHash: pin2Hash,
       deviceId: 'demo-device-rizky-001',
       createdByParentId: parentProfile.id,
@@ -270,6 +319,18 @@ async function main() {
       setByParentId: parentProfile.id,
       period: 'DAILY',
       limitAmount: BigInt(20_000_00),
+      excludeInfaq: true,
+    },
+  });
+
+  // Limit khusus gaming Rizky: max Rp 10.000/hari untuk top-up game
+  await prisma.spendingLimit.create({
+    data: {
+      childProfileId: rizkyProfile.id,
+      setByParentId: parentProfile.id,
+      period: 'DAILY',
+      limitAmount: BigInt(10_000_00),
+      voucherType: 'GAME_TOPUP',
       excludeInfaq: true,
     },
   });
@@ -345,8 +406,12 @@ async function main() {
         name: 'Voucher Shopee Rp 10.000',
         provider: 'Shopee',
         category: 'Belanja Online',
+        voucherType: 'DISCOUNT',
         price: BigInt(10_000_00),
-        description: 'Voucher belanja Shopee senilai Rp 10.000',
+        faceValue: BigInt(10_000_00),
+        stock: 100,
+        maxPerChild: 3,
+        description: 'Voucher potongan harga Shopee senilai Rp 10.000',
         mockCode: 'SHOPEE-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
         isActive: true,
       },
@@ -354,8 +419,12 @@ async function main() {
         name: 'Voucher Shopee Rp 25.000',
         provider: 'Shopee',
         category: 'Belanja Online',
+        voucherType: 'DISCOUNT',
         price: BigInt(25_000_00),
-        description: 'Voucher belanja Shopee senilai Rp 25.000',
+        faceValue: BigInt(25_000_00),
+        stock: 50,
+        maxPerChild: 2,
+        description: 'Voucher potongan harga Shopee senilai Rp 25.000',
         mockCode: 'SHOPEE-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
         isActive: true,
       },
@@ -363,8 +432,12 @@ async function main() {
         name: 'Top-up Diamond Mobile Legends 50',
         provider: 'Mobile Legends',
         category: 'Gaming',
+        voucherType: 'GAME_TOPUP',
         price: BigInt(15_000_00),
-        description: '50 Diamond Mobile Legends Bang Bang',
+        faceValue: BigInt(15_000_00),
+        stock: 200,
+        maxPerChild: 5,
+        description: '50 Diamond Mobile Legends Bang Bang. Kode dikirim ke akun MLBB kamu.',
         mockCode: 'MLBB-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
         isActive: true,
       },
@@ -372,24 +445,58 @@ async function main() {
         name: 'Top-up Diamond Mobile Legends 150',
         provider: 'Mobile Legends',
         category: 'Gaming',
+        voucherType: 'GAME_TOPUP',
         price: BigInt(40_000_00),
-        description: '150 Diamond Mobile Legends Bang Bang',
+        faceValue: BigInt(40_000_00),
+        stock: 100,
+        maxPerChild: 3,
+        description: '150 Diamond Mobile Legends Bang Bang. Kode dikirim ke akun MLBB kamu.',
         mockCode: 'MLBB-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
         isActive: true,
       },
       {
         name: 'Top-up Free Fire 70 Diamond',
-        provider: 'Free Fire',
+        provider: 'Garena Free Fire',
         category: 'Gaming',
+        voucherType: 'GAME_TOPUP',
         price: BigInt(12_000_00),
-        description: '70 Diamond Garena Free Fire',
+        faceValue: BigInt(12_000_00),
+        stock: 200,
+        maxPerChild: 5,
+        description: '70 Diamond Garena Free Fire. Kode dikirim ke akun FF kamu.',
         mockCode: 'FF-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        isActive: true,
+      },
+      {
+        name: 'Top-up GoPay Rp 20.000',
+        provider: 'GoPay',
+        category: 'E-Wallet',
+        voucherType: 'E_WALLET',
+        price: BigInt(20_000_00),
+        faceValue: BigInt(20_000_00),
+        stock: 50,
+        maxPerChild: 2,
+        description: 'Top-up GoPay senilai Rp 20.000',
+        mockCode: 'GOPAY-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        isActive: true,
+      },
+      {
+        name: 'Langganan Ruangguru 1 Bulan',
+        provider: 'Ruangguru',
+        category: 'Edukasi',
+        voucherType: 'EDUCATION',
+        price: BigInt(45_000_00),
+        faceValue: BigInt(99_000_00),
+        stock: 30,
+        maxPerChild: 1,
+        description: 'Akses penuh Ruangguru selama 1 bulan — belajar lebih asyik!',
+        mockCode: 'RG-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
         isActive: true,
       },
     ],
   });
 
-  console.log(`✅ Voucher catalog: 5 voucher ditambahkan`);
+  console.log(`✅ Voucher catalog: 7 voucher ditambahkan (Shopee, MLBB, FF, GoPay, Ruangguru)`);
 
   // =============================================
   // Summary
@@ -403,21 +510,24 @@ async function main() {
 ║     Email   : admin@byond.id                 ║
 ║     Password: Admin@Byond2026!               ║
 ║                                              ║
-║  👨 ORANG TUA                                ║
-║     Email   : budi.santoso@demo.byond.id     ║
-║     Password: Byond@2026                     ║
+║  👨 ORANG TUA — Budi Santoso                 ║
+║     Email      : budi.santoso@demo.byond.id  ║
+║     Password   : Byond@2026                  ║
+║     savingsPin : 123456                      ║
+║     BSI Rek    : 7123456789                  ║
+║     Saldo      : Rp 10.000.000               ║
 ║                                              ║
-║  👧 ANAK 1 — Aisha                           ║
-║     ID      : ${aishaProfile.id.slice(0, 8)}...           ║
+║  👧 ANAK 1 — Aisha Ramadhani                 ║
+║     Username: aisha_byond                    ║
+║     Password: 123456                         ║
 ║     PIN     : 123456                         ║
 ║     Saldo   : Rp 150.000                     ║
-║     Device  : demo-device-aisha-001          ║
 ║                                              ║
-║  👦 ANAK 2 — Rizky                           ║
-║     ID      : ${rizkyProfile.id.slice(0, 8)}...           ║
+║  👦 ANAK 2 — Rizky Maulana                   ║
+║     Username: rizky_byond                    ║
+║     Password: 654321                         ║
 ║     PIN     : 654321                         ║
 ║     Saldo   : Rp 80.000                      ║
-║     Device  : demo-device-rizky-001          ║
 ║                                              ║
 ╚══════════════════════════════════════════════╝
   `);
