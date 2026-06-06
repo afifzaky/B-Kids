@@ -17,6 +17,11 @@ interface ChildAccount {
   } | null;
 }
 
+interface ChoreCount {
+  assignedToId: string;
+  status: string;
+}
+
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -35,52 +40,107 @@ function getAge(dob: string | null): string {
 
 export function AccountsPage() {
   const [children, setChildren] = useState<ChildAccount[]>([]);
+  const [chores, setChores] = useState<ChoreCount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchChildren = () => {
+  const fetchData = () => {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
     setIsLoading(true);
-    fetch(`${API_BASE_URL}/api/family/children`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) setChildren(data.data);
-        else setError(data.message ?? "Gagal memuat data anak");
+    Promise.all([
+      fetch(`${API_BASE_URL}/api/family/children`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
+    ])
+      .then(([childrenRes, choresRes]) => Promise.all([childrenRes.json(), choresRes.json()]))
+      .then(([childrenData, choresData]) => {
+        if (childrenData.success) setChildren(childrenData.data);
+        else setError(childrenData.message ?? "Gagal memuat data anak");
+        if (choresData.success) setChores(choresData.data);
       })
       .catch(() => setError("Gagal terhubung ke server"))
       .finally(() => setIsLoading(false));
   };
 
   useEffect(() => {
-    fetchChildren();
+    fetchData();
   }, []);
+
+  const combinedBalance = children.reduce((sum, c) => sum + (c.account?.balance ?? 0), 0);
+  const activeChallengess = chores.filter((c) => c.status === "ACTIVE").length;
+  const pendingApprovals = chores.filter((c) => c.status === "PENDING_REVIEW").length;
+
+  const activeCountForChild = (childId: string) =>
+    chores.filter((c) => c.assignedToId === childId && c.status === "ACTIVE").length;
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-[1440px] mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-['Montserrat',sans-serif] font-bold text-2xl sm:text-3xl text-black">
-            Akun Anak
+            Child Accounts
           </h1>
           <p className="font-['Lato',sans-serif] text-gray-500 text-sm mt-1">
-            Pantau dan kelola akun anak Anda
+            Monitor and manage your children's financial accounts
           </p>
         </div>
         <Link
           href="/parent/add-child"
-          className="bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark shadow-sm px-5 py-2.5 rounded-xl font-['Poppins',sans-serif] font-semibold text-sm text-white transition-colors flex items-center gap-2 self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-bsi-teal-primary to-bsi-teal-secondary hover:from-bsi-teal-hover-dark hover:to-bsi-teal-hover-light text-white font-['Poppins',sans-serif] font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all self-start sm:self-auto"
         >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Tambah Akun Anak
+          Add Child Account
         </Link>
       </div>
+
+      {/* Summary Stats */}
+      {!isLoading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+          <div className="bg-white rounded-2xl p-6 border border-[#e0e7e7] hover:shadow-lg transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-bsi-teal-primary/10 flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-bsi-teal-primary" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+              </svg>
+            </div>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Total Accounts</h3>
+            <p className="font-['Montserrat',sans-serif] font-bold text-2xl text-[#030213]">{children.length}</p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-[#e0e7e7] hover:shadow-lg transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Combined Balance</h3>
+            <p className="font-['Montserrat',sans-serif] font-bold text-xl text-[#030213]">{formatRupiah(combinedBalance)}</p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-[#e0e7e7] hover:shadow-lg transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            </div>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Active Challenges</h3>
+            <p className="font-['Montserrat',sans-serif] font-bold text-2xl text-[#030213]">{activeChallengess}</p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-[#e0e7e7] hover:shadow-lg transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Pending Approvals</h3>
+            <p className="font-['Montserrat',sans-serif] font-bold text-2xl text-[#030213]">{pendingApprovals}</p>
+          </div>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -104,7 +164,6 @@ export function AccountsPage() {
           </div>
         </div>
       ) : children.length === 0 ? (
-        /* Empty State */
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-20 h-20 bg-bsi-teal-primary/10 rounded-full flex items-center justify-center mb-5">
             <svg className="w-10 h-10 text-bsi-teal-primary" fill="currentColor" viewBox="0 0 20 20">
@@ -127,16 +186,11 @@ export function AccountsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {children.map((child, index) => {
-            const colors = [
-              { bg: "from-bsi-teal-primary to-bsi-teal-secondary", accent: "bsi-teal-primary", border: "bsi-teal-primary" },
-              { bg: "from-bsi-orange-primary to-bsi-orange-secondary", accent: "bsi-orange-primary", border: "bsi-orange-primary" },
-            ];
-            const color = colors[index % colors.length];
-
+            const activeChallenges = activeCountForChild(child.id);
             return (
               <div key={child.id} className="bg-white rounded-2xl border border-[#e0e7e7] shadow-sm hover:shadow-lg transition-all overflow-hidden">
                 {/* Card Top */}
-                <div className={`bg-gradient-to-br ${color.bg} p-5`}>
+                <div className={`p-5 ${index % 2 === 0 ? "bg-gradient-to-br from-bsi-teal-primary to-bsi-teal-secondary" : "bg-gradient-to-br from-bsi-orange-primary to-bsi-orange-secondary"}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-2xl">
@@ -161,29 +215,31 @@ export function AccountsPage() {
 
                 {/* Card Body */}
                 <div className="p-5 space-y-4">
-                  <div>
-                    <p className="font-['Poppins',sans-serif] font-bold text-[#9ca3af] text-[10px] tracking-widest uppercase mb-1">
-                      SALDO TABUNGAN
-                    </p>
-                    <p className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-2xl">
-                      {child.account ? formatRupiah(child.account.balance) : "Rp —"}
-                    </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="font-['Poppins',sans-serif] font-bold text-[#9ca3af] text-[10px] tracking-widest uppercase mb-1">
+                        SALDO
+                      </p>
+                      <p className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg">
+                        {child.account ? formatRupiah(child.account.balance) : "Rp —"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-['Poppins',sans-serif] font-bold text-[#9ca3af] text-[10px] tracking-widest uppercase mb-1">
+                        CHALLENGES
+                      </p>
+                      <p className="font-['Montserrat',sans-serif] font-bold text-blue-600 text-lg">
+                        {activeChallenges} aktif
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/parent/child-account/${child.id}`}
-                      className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark text-white font-['Poppins',sans-serif] font-bold text-xs py-2.5 rounded-xl text-center transition-colors"
-                    >
-                      Lihat Detail
-                    </Link>
-                    <Link
-                      href={`/parent/child-tasks`}
-                      className="flex-1 bg-white hover:bg-gray-50 border border-[#e0e7e7] text-gray-600 font-['Poppins',sans-serif] font-bold text-xs py-2.5 rounded-xl text-center transition-colors"
-                    >
-                      Lihat Tugas
-                    </Link>
-                  </div>
+                  <Link
+                    href={`/parent/child-account/${child.id}`}
+                    className="block text-center bg-gradient-to-r from-bsi-teal-primary to-bsi-teal-secondary hover:from-bsi-teal-hover-dark hover:to-bsi-teal-hover-light text-white font-['Poppins',sans-serif] font-bold text-xs py-2.5 rounded-xl transition-all"
+                  >
+                    View Details →
+                  </Link>
                 </div>
               </div>
             );

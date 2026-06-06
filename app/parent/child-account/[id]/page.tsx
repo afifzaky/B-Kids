@@ -1,3 +1,5 @@
+"use client";
+
 import { ChildAccountDetailPage } from "./childAccountDetailPage";
 
 export default function Page() {

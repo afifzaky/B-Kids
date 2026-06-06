@@ -1,3 +1,5 @@
+"use client";
+
 import { ParentDashboard } from "./parentDashboard";
 
 export default function Page() {
