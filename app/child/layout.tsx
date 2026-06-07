@@ -2,9 +2,20 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { authFetch } from "../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
+const TX_LABELS: Record<string, string> = {
+  TOP_UP_FROM_PARENT: "Transfer dari Orang Tua",
+  CHORE_REWARD: "Reward Tantangan",
+  POCKET_ALLOCATE: "Alokasi ke Kantong",
+  POCKET_DEALLOCATE: "Penarikan dari Kantong",
+  VOUCHER_PURCHASE: "Pembelian Voucher",
+  INFAQ: "Infaq / Sedekah",
+  ADJUSTMENT: "Penyesuaian Saldo",
+};
 
 const NAV_ITEMS = [
   {
@@ -61,12 +72,38 @@ const NAV_ITEMS = [
   },
 ];
 
+interface ChildNotif {
+  id: string;
+  title: string;
+  subtitle: string;
+  time: string;
+  isCredit: boolean;
+}
+
+function timeAgo(str: string): string {
+  const diff = Date.now() - new Date(str).getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (days > 0) return `${days} hari lalu`;
+  if (hours > 0) return `${hours} jam lalu`;
+  if (mins > 0) return `${mins} mnt lalu`;
+  return "Baru saja";
+}
+
 export default function ChildLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [userName, setUserName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [notifications, setNotifications] = useState<ChildNotif[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -78,6 +115,55 @@ export default function ChildLayout({ children }: { children: React.ReactNode })
     setUserName(localStorage.getItem("userName") ?? "Anak");
     setAuthChecked(true);
   }, [router]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const fetchNotifications = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    setNotifLoading(true);
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/chores`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        const chores = (data.data ?? [])
+          .filter((c: { status: string }) => ["ACTIVE", "PENDING_REVIEW"].includes(c.status))
+          .slice(0, 5);
+        setNotifications(
+          chores.map((c: { id: string; title: string; category: string; status: string; deadline: string; rewardAmount: number }) => ({
+            id: c.id,
+            title: c.title,
+            subtitle: c.status === "PENDING_REVIEW"
+              ? "Menunggu review orang tua"
+              : `Kategori: ${c.category}`,
+            time: c.deadline,
+            isCredit: c.status === "PENDING_REVIEW",
+          }))
+        );
+      }
+    } catch { /* ignore */ }
+    finally { setNotifLoading(false); }
+  };
+
+  const handleNotifClick = () => {
+    setProfileOpen(false);
+    if (!notifOpen) fetchNotifications();
+    setNotifOpen((o) => !o);
+  };
+
+  const handleProfileClick = () => {
+    setNotifOpen(false);
+    setProfileOpen((o) => !o);
+  };
 
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem("refreshToken") ?? "";
@@ -120,7 +206,7 @@ export default function ChildLayout({ children }: { children: React.ReactNode })
       <aside
         className={`fixed top-0 left-0 h-full w-64 bg-[#f6fafa] border-r border-[#bdc9c9] z-30 flex flex-col transition-transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 lg:static lg:z-auto`}
+        } lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto`}
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-[#bdc9c9]">
@@ -136,25 +222,6 @@ export default function ChildLayout({ children }: { children: React.ReactNode })
             <p className="font-['Lato',sans-serif] text-gray-400 text-[10px] leading-tight">
               Portal Anak
             </p>
-          </div>
-        </div>
-
-        {/* User Profile */}
-        <div className="px-6 py-4 border-b border-[#bdc9c9]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-bsi-orange-primary/20 border-2 border-bsi-orange-primary flex items-center justify-center shrink-0">
-              <span className="font-bold text-bsi-orange-primary text-base">
-                {userName.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="min-w-0">
-              <p className="font-['Montserrat',sans-serif] font-bold text-black text-sm truncate">
-                {userName}
-              </p>
-              <p className="font-['Poppins',sans-serif] text-[rgba(0,0,0,0.5)] text-xs">
-                B-Kids Member
-              </p>
-            </div>
           </div>
         </div>
 
@@ -197,29 +264,135 @@ export default function ChildLayout({ children }: { children: React.ReactNode })
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="bg-white/80 backdrop-blur-sm border-b border-[#bdc9c9] sticky top-0 z-10 h-14 flex items-center px-4 sm:px-6 justify-between">
+        <header className="bg-white/80 backdrop-blur-sm border-b border-[#bdc9c9] sticky top-0 z-10 h-14 flex items-center px-4 sm:px-6">
+          {/* Mobile hamburger */}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+            className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 mr-2"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
 
-          <div className="hidden lg:flex items-center gap-2 text-sm">
-            <span className="font-['Lato',sans-serif] text-gray-400">Bank Syariah Indonesia</span>
-            <span className="text-gray-300">•</span>
-            <span className="font-['Poppins',sans-serif] font-semibold text-bsi-teal-primary">B-Kids</span>
-          </div>
+          <div className="flex-1" />
 
-          <div className="flex items-center gap-3 ml-auto">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-bsi-orange-primary to-bsi-orange-secondary flex items-center justify-center text-white text-xs font-bold">
-              {userName.charAt(0).toUpperCase()}
+          {/* Right side */}
+          <div className="flex items-center gap-1">
+            {/* Notification Bell */}
+            <div ref={notifRef} className="relative">
+              <button
+                onClick={handleNotifClick}
+                className="relative p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
+                aria-label="Notifikasi"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {notifications.length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-bsi-orange-primary rounded-full" />
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#e0e7e7] z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[#f3f4f6] flex items-center justify-between">
+                    <h4 className="font-['Poppins',sans-serif] font-bold text-gray-800 text-sm">Tantanganku</h4>
+                    <span className="font-['Lato',sans-serif] text-gray-400 text-xs">5 terbaru</span>
+                  </div>
+                  {notifLoading ? (
+                    <div className="py-8 text-center">
+                      <svg className="animate-spin w-5 h-5 text-bsi-teal-primary mx-auto" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <div className="text-3xl mb-2">🔔</div>
+                      <p className="font-['Lato',sans-serif] text-gray-400 text-sm">Belum ada aktivitas</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-[#f3f4f6] max-h-72 overflow-y-auto">
+                      {notifications.map((n) => (
+                        <div key={n.id} className="px-4 py-3 hover:bg-[#f9fafa] transition-colors">
+                          <div className="flex items-start gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${n.isCredit ? "bg-green-50" : "bg-red-50"}`}>
+                              <svg className={`w-4 h-4 ${n.isCredit ? "text-green-500" : "text-red-500"}`} fill="currentColor" viewBox="0 0 20 20">
+                                {n.isCredit ? (
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                                ) : (
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
+                                )}
+                              </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-['Poppins',sans-serif] font-semibold text-gray-800 text-xs leading-tight">{n.title}</p>
+                              {n.subtitle && (
+                                <p className="font-['Lato',sans-serif] text-gray-400 text-xs truncate mt-0.5">{n.subtitle}</p>
+                              )}
+                              <p className="font-['Lato',sans-serif] text-gray-300 text-xs mt-0.5">{timeAgo(n.time)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="px-4 py-2.5 border-t border-[#f3f4f6]">
+                    <Link
+                      href="/child/challenges"
+                      onClick={() => setNotifOpen(false)}
+                      className="font-['Poppins',sans-serif] font-bold text-bsi-teal-primary text-xs hover:underline"
+                    >
+                      Lihat semua tantangan →
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
-            <span className="hidden sm:block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">
-              {userName}
-            </span>
+
+            {/* Profile Dropdown */}
+            <div ref={profileRef} className="relative">
+              <button
+                onClick={handleProfileClick}
+                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bsi-orange-primary to-bsi-orange-secondary flex items-center justify-center text-white text-xs font-bold shrink-0">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">
+                  {userName}
+                </span>
+              </button>
+
+              {profileOpen && (
+                <div className="absolute right-0 top-full mt-2 w-full min-w-[160px] bg-white rounded-2xl shadow-xl border border-[#e0e7e7] z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[#f3f4f6]">
+                    <p className="font-['Poppins',sans-serif] font-bold text-gray-800 text-sm truncate">{userName}</p>
+                    <p className="font-['Lato',sans-serif] text-gray-400 text-xs">B-Kids Member</p>
+                  </div>
+                  <Link
+                    href="/child/profile"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-['Poppins',sans-serif] font-semibold text-gray-700 hover:bg-[#f0f9f9] hover:text-bsi-teal-primary transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Edit Profil
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-['Poppins',sans-serif] font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Keluar
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

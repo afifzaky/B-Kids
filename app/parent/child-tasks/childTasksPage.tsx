@@ -69,6 +69,7 @@ export function ChildTasksPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingChoreId, setEditingChoreId] = useState<string | null>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -156,6 +157,68 @@ export function ChildTasksPage() {
     } catch { /* ignore */ }
   };
 
+  const openEditModal = (chore: Chore) => {
+    setEditingChoreId(chore.id);
+    setFormData({
+      assignedToId: chore.assignedToId,
+      title: chore.title,
+      category: chore.category,
+      rewardAmount: String(chore.rewardAmount),
+      deadline: chore.deadline.split("T")[0],
+      description: chore.description ?? "",
+    });
+    setFormError("");
+    setShowForm(true);
+  };
+
+  const handleEditChore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.title.trim()) { setFormError("Judul tugas wajib diisi"); return; }
+    if (!formData.rewardAmount || isNaN(Number(formData.rewardAmount)) || Number(formData.rewardAmount) <= 0) {
+      setFormError("Reward harus berupa angka lebih dari 0");
+      return;
+    }
+    if (!formData.deadline) { setFormError("Deadline wajib diisi"); return; }
+
+    setIsSubmitting(true);
+    setFormError("");
+    try {
+      const token = localStorage.getItem("accessToken");
+      const deadline = new Date(formData.deadline);
+      deadline.setUTCHours(23, 59, 59, 0);
+
+      const res = await fetch(`${API_BASE_URL}/api/chores/${editingChoreId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          title: formData.title.trim(),
+          category: formData.category,
+          rewardAmount: Number(formData.rewardAmount),
+          deadline: deadline.toISOString(),
+          description: formData.description.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setFormError(data.message ?? "Gagal mengubah tugas"); return; }
+
+      setChores((prev) => prev.map((c) => c.id === editingChoreId ? data.data : c));
+      setEditingChoreId(null);
+      setFormData(EMPTY_FORM);
+      setShowForm(false);
+    } catch {
+      setFormError("Gagal terhubung ke server");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingChoreId(null);
+    setFormError("");
+    setFormData(EMPTY_FORM);
+  };
+
   const filteredChores = chores.filter((c) => {
     if (activeTab === "active") return ["ACTIVE", "PENDING_REVIEW", "REVISION_NEEDED"].includes(c.status);
     if (activeTab === "completed") return ["APPROVED", "REJECTED", "CANCELLED"].includes(c.status);
@@ -184,7 +247,7 @@ export function ChildTasksPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { setEditingChoreId(null); setFormData(EMPTY_FORM); setFormError(""); setShowForm(true); }}
           className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-bsi-teal-primary to-bsi-teal-secondary hover:from-bsi-teal-hover-dark hover:to-bsi-teal-hover-light text-white font-['Poppins',sans-serif] font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all self-start sm:self-auto"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -281,7 +344,7 @@ export function ChildTasksPage() {
           <p className="font-['Montserrat',sans-serif] font-bold text-gray-600 text-lg mb-1">Belum Ada Tugas</p>
           <p className="font-['Lato',sans-serif] text-gray-400 text-sm mb-4">Buat tugas pertama untuk anak Anda</p>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => { setEditingChoreId(null); setFormData(EMPTY_FORM); setFormError(""); setShowForm(true); }}
             className="bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark text-white font-['Poppins',sans-serif] font-bold text-sm px-5 py-2.5 rounded-xl transition-colors"
           >
             Buat Tugas
@@ -308,15 +371,26 @@ export function ChildTasksPage() {
                     </p>
                   </div>
                   {chore.status === "ACTIVE" && (
-                    <button
-                      onClick={() => handleDeleteChore(chore.id)}
-                      className="text-gray-300 hover:text-red-400 transition-colors p-1 shrink-0"
-                      title="Batalkan tugas"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => openEditModal(chore)}
+                        className="text-gray-300 hover:text-bsi-teal-primary transition-colors p-1"
+                        title="Edit tugas"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteChore(chore.id)}
+                        className="text-gray-300 hover:text-red-400 transition-colors p-1"
+                        title="Batalkan tugas"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -364,15 +438,15 @@ export function ChildTasksPage() {
         </div>
       )}
 
-      {/* Create Chore Modal */}
+      {/* Create / Edit Chore Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg my-4">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-xl">
-                Buat Tugas Baru
+                {editingChoreId ? "Edit Tugas" : "Buat Tugas Baru"}
               </h2>
-              <button onClick={() => { setShowForm(false); setFormError(""); setFormData(EMPTY_FORM); }} className="text-gray-400 hover:text-gray-600">
+              <button onClick={closeForm} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -385,21 +459,23 @@ export function ChildTasksPage() {
               </div>
             )}
 
-            <form onSubmit={handleCreateChore} className="space-y-4">
-              {/* Assign to */}
-              <div>
-                <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-2">
-                  Untuk Anak
-                </label>
-                <select
-                  value={formData.assignedToId}
-                  onChange={(e) => handleFormChange("assignedToId", e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl font-['Lato',sans-serif] text-sm text-gray-900 bg-white focus:border-bsi-teal-primary focus:outline-none transition-colors"
-                >
-                  <option value="">-- Pilih Anak --</option>
-                  {children.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
-                </select>
-              </div>
+            <form onSubmit={editingChoreId ? handleEditChore : handleCreateChore} className="space-y-4">
+              {/* Assign to — hidden when editing */}
+              {!editingChoreId && (
+                <div>
+                  <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-2">
+                    Untuk Anak
+                  </label>
+                  <select
+                    value={formData.assignedToId}
+                    onChange={(e) => handleFormChange("assignedToId", e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl font-['Lato',sans-serif] text-sm text-gray-900 bg-white focus:border-bsi-teal-primary focus:outline-none transition-colors"
+                  >
+                    <option value="">-- Pilih Anak --</option>
+                    {children.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
+                  </select>
+                </div>
+              )}
 
               {/* Title */}
               <div>
@@ -476,7 +552,7 @@ export function ChildTasksPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setFormError(""); setFormData(EMPTY_FORM); }}
+                  onClick={closeForm}
                   className="flex-1 bg-white border border-[#e0e7e7] hover:bg-gray-50 text-gray-600 font-['Poppins',sans-serif] font-bold text-sm py-3 rounded-xl transition-colors"
                 >
                   Batal
@@ -492,7 +568,7 @@ export function ChildTasksPage() {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
                   ) : null}
-                  {isSubmitting ? "Menyimpan..." : "Buat Tugas"}
+                  {isSubmitting ? "Menyimpan..." : editingChoreId ? "Simpan Perubahan" : "Buat Tugas"}
                 </button>
               </div>
             </form>

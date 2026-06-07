@@ -76,6 +76,16 @@ export function PocketsPage() {
   const [topupError, setTopupError] = useState<string | null>(null);
   const [topupSuccess, setTopupSuccess] = useState<string | null>(null);
 
+  // Edit pocket modal
+  const [editPocket, setEditPocket] = useState<Pocket | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmoji, setEditEmoji] = useState("💰");
+  const [editTarget, setEditTarget] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
+  const [editIntention, setEditIntention] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   // Delete confirm
   const [deletePocketId, setDeletePocketId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -165,6 +175,46 @@ export function PocketsPage() {
       setTopupError("Gagal terhubung ke server");
     } finally {
       setTopupLoading(false);
+    }
+  };
+
+  const openEditModal = (pocket: Pocket) => {
+    setEditPocket(pocket);
+    setEditName(pocket.name);
+    setEditEmoji(pocket.emoji);
+    setEditTarget(pocket.targetAmount != null ? String(pocket.targetAmount) : "");
+    setEditDeadline(pocket.deadline ? pocket.deadline.split("T")[0] : "");
+    setEditIntention(pocket.intentionText ?? "");
+    setEditError(null);
+  };
+
+  const handleEdit = async () => {
+    if (!editPocket) return;
+    if (!editName.trim()) { setEditError("Nama kantong tidak boleh kosong"); return; }
+    setEditLoading(true);
+    setEditError(null);
+    const token = localStorage.getItem("accessToken");
+    const body: Record<string, unknown> = {
+      name: editName.trim(),
+      emoji: editEmoji,
+      targetAmount: editTarget ? parseFloat(editTarget) : null,
+      deadline: editDeadline ? new Date(editDeadline).toISOString() : null,
+      intentionText: editIntention.trim() || null,
+    };
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/pockets/${editPocket.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      const d = await res.json();
+      if (!res.ok) { setEditError(d.message ?? "Gagal menyimpan perubahan"); return; }
+      setEditPocket(null);
+      fetchPockets();
+    } catch {
+      setEditError("Gagal terhubung ke server");
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -299,15 +349,26 @@ export function PocketsPage() {
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setDeletePocketId(pocket.id)}
-                    className="text-gray-300 hover:text-red-400 transition-colors p-1"
-                    title="Hapus kantong"
-                  >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => openEditModal(pocket)}
+                      className="text-gray-300 hover:text-bsi-teal-primary transition-colors p-1"
+                      title="Edit kantong"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setDeletePocketId(pocket.id)}
+                      className="text-gray-300 hover:text-red-400 transition-colors p-1"
+                      title="Hapus kantong"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Balance */}
@@ -648,6 +709,139 @@ export function PocketsPage() {
                   "Berhasil ✓"
                 ) : (
                   "Isi Sekarang"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Pocket Modal */}
+      {editPocket && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-['Montserrat',sans-serif] font-bold text-xl text-black">Edit Kantong</h3>
+              <button onClick={() => setEditPocket(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Emoji */}
+              <div>
+                <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">Pilih Emoji</label>
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_EMOJIS.map((e) => (
+                    <button
+                      key={e}
+                      onClick={() => setEditEmoji(e)}
+                      className={`text-2xl w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                        editEmoji === e
+                          ? "bg-bsi-teal-primary/20 ring-2 ring-bsi-teal-primary scale-110"
+                          : "bg-gray-100 hover:bg-gray-200"
+                      }`}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">
+                  Nama Kantong <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  maxLength={50}
+                  className="w-full border border-[#e0e7e7] rounded-xl px-4 py-3 font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                />
+              </div>
+
+              {/* Target amount */}
+              <div>
+                <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">
+                  Target Tabungan <span className="text-gray-400 font-normal">(opsional)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-['Poppins',sans-serif] text-gray-400 text-sm">Rp</span>
+                  <input
+                    type="number"
+                    value={editTarget}
+                    onChange={(e) => setEditTarget(e.target.value)}
+                    placeholder="Kosongkan untuk hapus target"
+                    min="0"
+                    className="w-full border border-[#e0e7e7] rounded-xl pl-12 pr-4 py-3 font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Deadline */}
+              {editTarget && (
+                <div>
+                  <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">
+                    Deadline <span className="text-gray-400 font-normal">(opsional)</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={editDeadline}
+                    onChange={(e) => setEditDeadline(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="w-full border border-[#e0e7e7] rounded-xl px-4 py-3 font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                  />
+                </div>
+              )}
+
+              {/* Intention */}
+              <div>
+                <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">
+                  Niat / Tujuan <span className="text-gray-400 font-normal">(opsional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={editIntention}
+                  onChange={(e) => setEditIntention(e.target.value)}
+                  placeholder="Kenapa kamu menabung di sini?"
+                  maxLength={500}
+                  className="w-full border border-[#e0e7e7] rounded-xl px-4 py-3 font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                />
+              </div>
+            </div>
+
+            {editError && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
+                <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{editError}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setEditPocket(null)}
+                className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleEdit}
+                disabled={editLoading}
+                className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-50 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                {editLoading ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Menyimpan...
+                  </>
+                ) : (
+                  "Simpan Perubahan"
                 )}
               </button>
             </div>

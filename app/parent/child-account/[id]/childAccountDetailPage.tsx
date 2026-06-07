@@ -90,12 +90,24 @@ const CHORE_STATUS_COLORS: Record<string, string> = {
   REVISION_NEEDED: "bg-orange-100 text-orange-700",
 };
 
+const PERIOD_LABELS: Record<string, string> = {
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
+  MONTHLY: "Monthly",
+};
+
 export function ChildAccountDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [summary, setSummary] = useState<ChildSummary | null>(null);
   const [chores, setChores] = useState<Chore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Edit Limits Modal
+  const [showLimitsModal, setShowLimitsModal] = useState(false);
+  const [limitsForm, setLimitsForm] = useState({ daily: "", weekly: "", monthly: "", excludeInfaq: true });
+  const [limitsSubmitting, setLimitsSubmitting] = useState(false);
+  const [limitsError, setLimitsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -115,6 +127,55 @@ export function ChildAccountDetailPage() {
       .catch(() => setError("Gagal terhubung ke server"))
       .finally(() => setIsLoading(false));
   }, [id]);
+
+  const openLimitsModal = () => {
+    if (!summary) return;
+    const daily = summary.limits.find((l) => l.period === "DAILY");
+    const weekly = summary.limits.find((l) => l.period === "WEEKLY");
+    const monthly = summary.limits.find((l) => l.period === "MONTHLY");
+    setLimitsForm({
+      daily: daily ? String(daily.limitAmount) : "",
+      weekly: weekly ? String(weekly.limitAmount) : "",
+      monthly: monthly ? String(monthly.limitAmount) : "",
+      excludeInfaq: daily?.excludeInfaq ?? weekly?.excludeInfaq ?? monthly?.excludeInfaq ?? true,
+    });
+    setLimitsError(null);
+    setShowLimitsModal(true);
+  };
+
+  const handleSaveLimits = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token || !id) return;
+
+    const body: Record<string, number | null | boolean> = {};
+    if (limitsForm.daily !== "") body.daily = Number(limitsForm.daily) || null;
+    if (limitsForm.weekly !== "") body.weekly = Number(limitsForm.weekly) || null;
+    if (limitsForm.monthly !== "") body.monthly = Number(limitsForm.monthly) || null;
+    body.excludeInfaq = limitsForm.excludeInfaq;
+
+    if (Object.keys(body).filter((k) => k !== "excludeInfaq").length === 0) {
+      setLimitsError("Isi minimal satu batas pengeluaran");
+      return;
+    }
+
+    setLimitsSubmitting(true);
+    setLimitsError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/limits/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { setLimitsError(data.message ?? "Gagal menyimpan batas pengeluaran"); return; }
+      setSummary((prev) => prev ? { ...prev, limits: data.data ?? [] } : prev);
+      setShowLimitsModal(false);
+    } catch {
+      setLimitsError("Gagal terhubung ke server");
+    } finally {
+      setLimitsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -294,7 +355,18 @@ export function ChildAccountDetailPage() {
         </div>
 
         <div className="lg:col-span-4 bg-white rounded-2xl border border-[#e0e7e7] shadow-sm p-6">
-          <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg mb-5">Spending Limits</h3>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg">Spending Limits</h3>
+            <button
+              onClick={openLimitsModal}
+              className="inline-flex items-center gap-1.5 text-bsi-teal-primary hover:text-bsi-teal-hover-dark font-['Poppins',sans-serif] font-semibold text-xs transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              Edit
+            </button>
+          </div>
           {summary.limits.length > 0 ? (
             <div className="space-y-4">
               {summary.limits.map((limit) => (
@@ -338,7 +410,11 @@ export function ChildAccountDetailPage() {
         {summary.account && summary.account.pockets.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {summary.account.pockets.map((pocket) => (
-              <div key={pocket.id} className={`rounded-xl border p-4 ${pocket.isGoalCompleted ? "bg-green-50 border-green-200" : "bg-[#f8fafa] border-[#e0e7e7]"}`}>
+              <Link
+                key={pocket.id}
+                href={`/parent/children/${id}/pockets/${pocket.id}`}
+                className={`block rounded-xl border p-4 hover:shadow-md transition-all ${pocket.isGoalCompleted ? "bg-green-50 border-green-200 hover:border-green-400" : "bg-[#f8fafa] border-[#e0e7e7] hover:border-bsi-teal-primary/30 hover:bg-[#f0f9f9]"}`}
+              >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-bsi-orange-primary/10 flex items-center justify-center text-xl">
                     {pocket.emoji ?? "💰"}
@@ -347,6 +423,9 @@ export function ChildAccountDetailPage() {
                     <p className="font-['Poppins',sans-serif] font-bold text-[#030213] text-sm truncate">{pocket.name}</p>
                     <p className="font-['Lato',sans-serif] text-[#6b7280] text-xs">{pocket.category}</p>
                   </div>
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 </div>
                 <p className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg mb-2">
                   {formatRupiah(pocket.balance)}
@@ -365,7 +444,7 @@ export function ChildAccountDetailPage() {
                 {pocket.isGoalCompleted && (
                   <p className="font-['Poppins',sans-serif] font-semibold text-green-600 text-xs mt-2">Tujuan Tercapai 🎉</p>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         ) : (
@@ -410,6 +489,87 @@ export function ChildAccountDetailPage() {
           <p className="font-['Lato',sans-serif] text-gray-400 text-sm text-center py-8">Belum ada transaksi</p>
         )}
       </div>
+      {/* Edit Limits Modal */}
+      {showLimitsModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-xl">Edit Spending Limits</h2>
+                <p className="font-['Lato',sans-serif] text-gray-500 text-xs mt-0.5">Kosongkan field untuk tidak mengubah limit tersebut</p>
+              </div>
+              <button onClick={() => setShowLimitsModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {(["daily", "weekly", "monthly"] as const).map((period) => (
+                <div key={period}>
+                  <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1.5">
+                    {PERIOD_LABELS[period.toUpperCase()]} Limit (Rp)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-['Poppins',sans-serif]">Rp</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={limitsForm[period]}
+                      onChange={(e) => setLimitsForm((prev) => ({ ...prev, [period]: e.target.value }))}
+                      placeholder="Tidak dibatasi"
+                      className="w-full pl-10 pr-4 py-2.5 border border-[#e0e7e7] rounded-xl font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                    />
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <p className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">Exclude Infaq</p>
+                  <p className="font-['Lato',sans-serif] text-gray-400 text-xs">Transaksi infaq tidak dihitung dalam limit</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLimitsForm((prev) => ({ ...prev, excludeInfaq: !prev.excludeInfaq }))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${limitsForm.excludeInfaq ? "bg-bsi-teal-primary" : "bg-gray-200"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${limitsForm.excludeInfaq ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+            </div>
+
+            {limitsError && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <p className="font-['Lato',sans-serif] text-red-600 text-sm">{limitsError}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowLimitsModal(false)}
+                className="flex-1 bg-white border border-[#e0e7e7] py-2.5 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveLimits}
+                disabled={limitsSubmitting}
+                className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-50 py-2.5 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                {limitsSubmitting ? (
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : null}
+                {limitsSubmitting ? "Menyimpan..." : "Simpan Limit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

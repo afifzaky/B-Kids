@@ -29,12 +29,40 @@ interface PendingChore {
   latestSubmission: { submittedAt: string; notes: string | null } | null;
 }
 
+interface ParentTransaction {
+  id: string;
+  type: "CREDIT" | "DEBIT";
+  source: string;
+  amount: number;
+  relatedChild: { fullName: string } | null;
+  notes: string | null;
+  createdAt: string;
+}
+
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+function formatDate(str: string): string {
+  return new Date(str).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function txDescription(tx: ParentTransaction): string {
+  switch (tx.source) {
+    case "DEPOSIT": return "Top Up Saldo";
+    case "TRANSFER_TO_CHILD": return `Transfer ke ${tx.relatedChild?.fullName ?? "Anak"}`;
+    default: return tx.notes ?? tx.source;
+  }
 }
 
 function timeAgo(str: string): string {
@@ -51,7 +79,16 @@ export function ParentDashboard() {
   const [profile, setProfile] = useState<ParentProfile | null>(null);
   const [children, setChildren] = useState<ChildAccount[]>([]);
   const [pendingChores, setPendingChores] = useState<PendingChore[]>([]);
+  const [recentTx, setRecentTx] = useState<ParentTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Top Up Modal
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
+  const [topUpNotes, setTopUpNotes] = useState("");
+  const [topUpLoading, setTopUpLoading] = useState(false);
+  const [topUpError, setTopUpError] = useState<string | null>(null);
+  const [topUpSuccess, setTopUpSuccess] = useState<string | null>(null);
 
   // Allocate Money Modal
   const [showAllocate, setShowAllocate] = useState(false);
@@ -70,19 +107,63 @@ export function ParentDashboard() {
       fetch(`${API_BASE_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
       fetch(`${API_BASE_URL}/api/family/children`, { headers: { Authorization: `Bearer ${token}` } }),
       fetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API_BASE_URL}/api/parent/banking/account`, { headers: { Authorization: `Bearer ${token}` } }),
     ])
-      .then(([profileRes, childrenRes, choresRes]) =>
-        Promise.all([profileRes.json(), childrenRes.json(), choresRes.json()])
+      .then(([profileRes, childrenRes, choresRes, bankingRes]) =>
+        Promise.all([profileRes.json(), childrenRes.json(), choresRes.json(), bankingRes.json()])
       )
-      .then(([profileData, childrenData, choresData]) => {
+      .then(([profileData, childrenData, choresData, bankingData]) => {
         if (profileData.data?.profile) setProfile(profileData.data.profile);
         if (childrenData.success) setChildren(childrenData.data);
         if (choresData.success)
           setPendingChores(choresData.data.filter((c: PendingChore & { status: string }) => c.status === "PENDING_REVIEW"));
+        if (bankingData.success) setRecentTx(bankingData.data.recentTransactions ?? []);
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  const openTopUp = () => {
+    setTopUpAmount("");
+    setTopUpNotes("");
+    setTopUpError(null);
+    setTopUpSuccess(null);
+    setShowTopUp(true);
+  };
+
+  const handleTopUp = async () => {
+    const amount = parseFloat(topUpAmount);
+    if (!amount || amount <= 0) { setTopUpError("Masukkan nominal yang valid"); return; }
+    if (amount > 100_000_000) { setTopUpError("Maksimal top up Rp 100.000.000 per transaksi"); return; }
+    setTopUpLoading(true);
+    setTopUpError(null);
+    const token = localStorage.getItem("accessToken");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/parent/banking/deposit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ amount, ...(topUpNotes.trim() ? { notes: topUpNotes.trim() } : {}) }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setTopUpError(data.message ?? "Gagal melakukan top up"); return; }
+      setTopUpSuccess(data.message ?? "Top up berhasil!");
+      setProfile((prev) => prev ? { ...prev, balance: data.data.newBalance } : prev);
+      const newTx: ParentTransaction = {
+        id: data.data.transactionId ?? String(Date.now()),
+        type: "CREDIT",
+        source: "DEPOSIT",
+        amount,
+        relatedChild: null,
+        notes: topUpNotes.trim() || null,
+        createdAt: new Date().toISOString(),
+      };
+      setRecentTx((prev) => [newTx, ...prev].slice(0, 5));
+    } catch {
+      setTopUpError("Gagal terhubung ke server");
+    } finally {
+      setTopUpLoading(false);
+    }
+  };
 
   const openAllocate = () => {
     setShowAllocate(true);
@@ -147,25 +228,39 @@ export function ParentDashboard() {
 
           <div className="relative">
             <p className="font-['Poppins',sans-serif] font-semibold text-white/80 text-xs tracking-widest uppercase mb-1">
-              TOTAL FAMILY BALANCE
+              SALDO REKENING SAYA
             </p>
             {profile?.bsiAccountNumber && (
               <p className="font-['Lato',sans-serif] text-white/60 text-xs mb-3">
                 No. Rek BSI: {profile.bsiAccountNumber}
               </p>
             )}
-            <h2 className="font-['League_Spartan',sans-serif] font-extrabold text-white text-3xl sm:text-4xl lg:text-5xl tracking-tight mb-5">
-              {isLoading ? "Rp —" : formatRupiah(totalFamilyBalance)}
+            <h2 className="font-['League_Spartan',sans-serif] font-extrabold text-white text-3xl sm:text-4xl lg:text-5xl tracking-tight mb-1">
+              {isLoading ? "Rp —" : formatRupiah(profile?.balance ?? 0)}
             </h2>
-            <button
-              onClick={openAllocate}
-              className="bg-bsi-orange-primary hover:bg-[#d47a00] shadow-lg px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-sm sm:text-base text-white transition-all hover:shadow-xl flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-              Allocate Money
-            </button>
+            <p className="font-['Lato',sans-serif] text-white/60 text-xs mb-5">
+              Total keluarga: {isLoading ? "—" : formatRupiah(totalFamilyBalance)}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={openTopUp}
+                className="bg-white/20 hover:bg-white/30 shadow-lg px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-sm sm:text-base text-white transition-all hover:shadow-xl flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Top Up Saldo
+              </button>
+              <button
+                onClick={openAllocate}
+                className="bg-bsi-orange-primary hover:bg-[#d47a00] shadow-lg px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-sm sm:text-base text-white transition-all hover:shadow-xl flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Allocate Money
+              </button>
+            </div>
           </div>
         </div>
 
@@ -229,96 +324,56 @@ export function ParentDashboard() {
                   </div>
                 ))}
 
-                <Link href="/parent/add-child" className="bg-white rounded-2xl border border-dashed border-bsi-teal-primary/40 p-6 shadow-sm hover:shadow-lg hover:border-bsi-teal-primary transition-all flex flex-col items-center justify-center text-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-bsi-teal-primary/10 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-bsi-teal-primary" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="font-['Poppins',sans-serif] font-bold text-bsi-teal-primary text-base">Tambah Akun Anak</p>
-                    <p className="font-['Lato',sans-serif] text-gray-400 text-xs mt-1">Daftarkan anak baru ke B-Kids</p>
-                  </div>
-                </Link>
               </div>
             )}
 
-            {/* Recent Activity Table */}
+            {/* Recent Activity */}
             <div className="bg-white rounded-2xl border border-[#e0e7e7] shadow-sm p-6 sm:p-8">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-['Montserrat',sans-serif] font-bold text-xl text-black">Aktivitas Terbaru</h3>
-                <Link href="/parent/pending-actions" className="flex items-center gap-1 font-['Poppins',sans-serif] font-bold text-bsi-teal-primary text-sm hover:underline">
-                  Aksi Pending
+                <Link href="/parent/banking" className="flex items-center gap-1 font-['Poppins',sans-serif] font-bold text-bsi-teal-primary text-sm hover:underline">
+                  Lihat Semua
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                   </svg>
                 </Link>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[540px]">
-                  <thead>
-                    <tr className="border-b border-[#e0e7e7]">
-                      <th className="font-['Poppins',sans-serif] font-bold text-[#9ca3af] text-[10px] tracking-widest uppercase text-left pb-4">ANAK</th>
-                      <th className="font-['Poppins',sans-serif] font-bold text-[#9ca3af] text-[10px] tracking-widest uppercase text-left pb-4">KATEGORI</th>
-                      <th className="font-['Poppins',sans-serif] font-bold text-[#9ca3af] text-[10px] tracking-widest uppercase text-left pb-4">MERCHANT</th>
-                      <th className="font-['Poppins',sans-serif] font-bold text-[#9ca3af] text-[10px] tracking-widest uppercase text-left pb-4">TANGGAL</th>
-                      <th className="font-['Poppins',sans-serif] font-bold text-[#9ca3af] text-[10px] tracking-widest uppercase text-right pb-4">JUMLAH</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-[#f9fafb]">
-                      <td className="font-['Lato',sans-serif] font-bold text-black text-sm py-5">Ahmad</td>
-                      <td className="py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="bg-[rgba(0,124,128,0.1)] rounded-lg p-1.5">
-                            <svg className="w-4 h-4 text-bsi-teal-primary" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" />
-                            </svg>
-                          </div>
-                          <span className="font-['Poppins',sans-serif] font-medium text-black text-sm">Pendidikan</span>
+              {recentTx.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <p className="font-['Lato',sans-serif] text-gray-400 text-sm">Belum ada transaksi</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {recentTx.slice(0, 5).map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between py-3.5 border-b border-[#f3f4f6] last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${tx.type === "CREDIT" ? "bg-green-50" : "bg-orange-50"}`}>
+                          <svg className={`w-5 h-5 ${tx.type === "CREDIT" ? "text-green-500" : "text-bsi-orange-primary"}`} fill="currentColor" viewBox="0 0 20 20">
+                            {tx.type === "CREDIT" ? (
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                            ) : (
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
+                            )}
+                          </svg>
                         </div>
-                      </td>
-                      <td className="font-['Lato',sans-serif] text-[#4b5563] text-sm py-5">Toko Buku</td>
-                      <td className="font-['Lato',sans-serif] text-[#6b7280] text-sm py-5">Hari ini, 10:45</td>
-                      <td className="font-['Montserrat',sans-serif] font-bold text-black text-sm text-right py-5">-Rp 675.000</td>
-                    </tr>
-                    <tr className="border-b border-[#f9fafb]">
-                      <td className="font-['Lato',sans-serif] font-bold text-black text-sm py-5">Sarah</td>
-                      <td className="py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="bg-[rgba(237,139,0,0.1)] rounded-lg p-1.5">
-                            <svg className="w-4 h-4 text-bsi-orange-primary" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <span className="font-['Poppins',sans-serif] font-medium text-black text-sm">Jajan</span>
+                        <div>
+                          <p className="font-['Poppins',sans-serif] font-semibold text-gray-800 text-sm">{txDescription(tx)}</p>
+                          <p className="font-['Lato',sans-serif] text-gray-400 text-xs">{formatDate(tx.createdAt)}</p>
                         </div>
-                      </td>
-                      <td className="font-['Lato',sans-serif] text-[#4b5563] text-sm py-5">Kantin Sekolah</td>
-                      <td className="font-['Lato',sans-serif] text-[#6b7280] text-sm py-5">Hari ini, 09:12</td>
-                      <td className="font-['Montserrat',sans-serif] font-bold text-black text-sm text-right py-5">-Rp 127.500</td>
-                    </tr>
-                    <tr>
-                      <td className="font-['Lato',sans-serif] font-bold text-black text-sm py-5">Sarah</td>
-                      <td className="py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="bg-[#f3f4f6] rounded-lg p-1.5">
-                            <svg className="w-4 h-4 text-[#4b5563]" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                              <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1v-1h3.05a2.5 2.5 0 014.9 0H19a1 1 0 001-1v-2a4 4 0 00-4-4h-3V4a1 1 0 00-1-1H3z" />
-                            </svg>
-                          </div>
-                          <span className="font-['Poppins',sans-serif] font-medium text-black text-sm">Transportasi</span>
-                        </div>
-                      </td>
-                      <td className="font-['Lato',sans-serif] text-[#4b5563] text-sm py-5">KRL / Transjakarta</td>
-                      <td className="font-['Lato',sans-serif] text-[#6b7280] text-sm py-5">Kemarin</td>
-                      <td className="font-['Montserrat',sans-serif] font-bold text-black text-sm text-right py-5">-Rp 300.000</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                      </div>
+                      <p className={`font-['Montserrat',sans-serif] font-bold text-sm ml-3 shrink-0 ${tx.type === "CREDIT" ? "text-green-600" : "text-bsi-orange-primary"}`}>
+                        {tx.type === "CREDIT" ? "+" : "-"}{formatRupiah(tx.amount)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -414,6 +469,133 @@ export function ParentDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Top Up Modal */}
+      {showTopUp && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="font-['Montserrat',sans-serif] font-bold text-xl text-black">Top Up Saldo</h3>
+                <p className="font-['Lato',sans-serif] text-gray-400 text-sm mt-0.5">Tambah saldo rekening B-Kids Anda</p>
+              </div>
+              <button onClick={() => setShowTopUp(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="bg-gradient-to-r from-bsi-teal-primary to-bsi-teal-secondary rounded-2xl p-4 mb-5">
+              <p className="font-['Poppins',sans-serif] text-white/80 text-xs uppercase tracking-wide mb-1">Saldo Saat Ini</p>
+              <p className="font-['Montserrat',sans-serif] font-bold text-white text-2xl">
+                {profile ? formatRupiah(profile.balance) : "—"}
+              </p>
+            </div>
+
+            {topUpSuccess ? (
+              <div className="text-center py-6">
+                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-7 h-7 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="font-['Poppins',sans-serif] font-bold text-green-600 text-base">{topUpSuccess}</p>
+                <p className="font-['Lato',sans-serif] text-gray-400 text-sm mt-1">
+                  Saldo baru: {profile ? formatRupiah(profile.balance) : ""}
+                </p>
+                <button onClick={() => setShowTopUp(false)} className="mt-4 bg-bsi-teal-primary text-white font-['Poppins',sans-serif] font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-bsi-teal-hover-dark transition-colors">
+                  Tutup
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <p className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-2">Nominal Cepat</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[100000, 250000, 500000, 1000000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setTopUpAmount(String(amt))}
+                        className={`px-4 py-2 rounded-xl text-sm font-['Poppins',sans-serif] font-bold transition-colors ${
+                          topUpAmount === String(amt)
+                            ? "bg-bsi-teal-primary text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                      >
+                        {formatRupiah(amt)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">
+                    Nominal Lainnya
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-['Poppins',sans-serif]">Rp</span>
+                    <input
+                      type="number"
+                      value={topUpAmount}
+                      onChange={(e) => { setTopUpAmount(e.target.value); setTopUpError(null); }}
+                      placeholder="0"
+                      min="1"
+                      max="100000000"
+                      className="w-full border border-[#e0e7e7] rounded-xl pl-12 pr-4 py-3 font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                    />
+                  </div>
+                  <p className="font-['Lato',sans-serif] text-gray-400 text-xs mt-1">Maks. Rp 100.000.000 per transaksi</p>
+                </div>
+
+                <div>
+                  <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">
+                    Keterangan <span className="text-gray-400 font-normal">(opsional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={topUpNotes}
+                    onChange={(e) => setTopUpNotes(e.target.value)}
+                    placeholder="Contoh: Top up bulan Juni"
+                    className="w-full border border-[#e0e7e7] rounded-xl px-4 py-3 font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                  />
+                </div>
+
+                {topUpError && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                    <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{topUpError}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowTopUp(false)}
+                    className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleTopUp}
+                    disabled={topUpLoading}
+                    className="flex-1 bg-bsi-orange-primary hover:bg-[#d47a00] disabled:opacity-50 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-all flex items-center justify-center gap-2"
+                  >
+                    {topUpLoading ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Memproses...
+                      </>
+                    ) : "Top Up Sekarang"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Allocate Money Modal */}
       {showAllocate && (
