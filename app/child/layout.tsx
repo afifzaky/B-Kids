@@ -80,6 +80,39 @@ interface ChildNotif {
   isCredit: boolean;
 }
 
+interface HealthService {
+  status: string;
+  latencyMs?: number;
+}
+
+interface HealthData {
+  status: string;
+  statusLabel: string;
+  uptimeSeconds: number;
+  services: {
+    database: HealthService;
+    storage: HealthService;
+  };
+}
+
+type ServiceStatus = "operational" | "degraded" | "down" | "unknown";
+
+function formatUptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return `${d}h ${h}j ${m}m`;
+  if (h > 0) return `${h}j ${m}m`;
+  return `${m}m`;
+}
+
+function statusDotClass(status: ServiceStatus | string): string {
+  if (status === "operational") return "bg-green-500";
+  if (status === "degraded") return "bg-yellow-400";
+  if (status === "down") return "bg-red-500";
+  return "bg-gray-400";
+}
+
 function timeAgo(str: string): string {
   const diff = Date.now() - new Date(str).getTime();
   const mins = Math.floor(diff / 60000);
@@ -100,10 +133,14 @@ export default function ChildLayout({ children }: { children: React.ReactNode })
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [healthOpen, setHealthOpen] = useState(false);
+  const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [healthStatus, setHealthStatus] = useState<ServiceStatus>("unknown");
   const [notifications, setNotifications] = useState<ChildNotif[]>([]);
   const [notifLoading, setNotifLoading] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const healthRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -114,15 +151,35 @@ export default function ChildLayout({ children }: { children: React.ReactNode })
     }
     setUserName(localStorage.getItem("userName") ?? "Anak");
     setAuthChecked(true);
+    fetchNotifications();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+      if (healthRef.current && !healthRef.current.contains(e.target as Node)) setHealthOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/health`);
+        const data: HealthData = await res.json();
+        setHealthData(data);
+        const s = data.status as ServiceStatus;
+        setHealthStatus(["operational", "degraded", "down"].includes(s) ? s : "unknown");
+      } catch {
+        setHealthStatus("down");
+      }
+    };
+    fetchHealth();
+    const id = setInterval(fetchHealth, 60000);
+    return () => clearInterval(id);
   }, []);
 
   const fetchNotifications = async () => {
@@ -156,13 +213,21 @@ export default function ChildLayout({ children }: { children: React.ReactNode })
 
   const handleNotifClick = () => {
     setProfileOpen(false);
+    setHealthOpen(false);
     if (!notifOpen) fetchNotifications();
     setNotifOpen((o) => !o);
   };
 
   const handleProfileClick = () => {
     setNotifOpen(false);
+    setHealthOpen(false);
     setProfileOpen((o) => !o);
+  };
+
+  const handleHealthClick = () => {
+    setNotifOpen(false);
+    setProfileOpen(false);
+    setHealthOpen((o) => !o);
   };
 
   const handleLogout = async () => {
@@ -279,6 +344,98 @@ export default function ChildLayout({ children }: { children: React.ReactNode })
 
           {/* Right side */}
           <div className="flex items-center gap-1">
+
+            {/* System Health Indicator */}
+            <div ref={healthRef} className="relative">
+              <button
+                onClick={handleHealthClick}
+                className="relative p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors flex items-center justify-center"
+                aria-label="Status Sistem"
+              >
+                <span className="relative flex h-3 w-3">
+                  {healthStatus !== "operational" && healthStatus !== "unknown" && (
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${statusDotClass(healthStatus)}`} />
+                  )}
+                  <span className={`relative inline-flex rounded-full h-3 w-3 ${statusDotClass(healthStatus)}`} />
+                </span>
+              </button>
+
+              {healthOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[#e0e7e7] z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[#f3f4f6] flex items-center justify-between">
+                    <h4 className="font-['Poppins',sans-serif] font-bold text-gray-800 text-sm">Status Sistem</h4>
+                    {healthData && (
+                      <span className={`text-xs font-['Poppins',sans-serif] font-semibold px-2 py-0.5 rounded-full ${
+                        healthStatus === "operational" ? "bg-green-100 text-green-700" :
+                        healthStatus === "degraded" ? "bg-yellow-100 text-yellow-700" :
+                        healthStatus === "down" ? "bg-red-100 text-red-700" :
+                        "bg-gray-100 text-gray-500"
+                      }`}>
+                        {healthData.statusLabel ?? healthData.status}
+                      </span>
+                    )}
+                  </div>
+
+                  {!healthData ? (
+                    <div className="py-6 text-center">
+                      <p className="font-['Lato',sans-serif] text-gray-400 text-sm">Mengambil data...</p>
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 space-y-3">
+                      {/* Database */}
+                      {healthData.services?.database && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex rounded-full h-2.5 w-2.5 ${statusDotClass(healthData.services.database.status)}`} />
+                            <span className="font-['Poppins',sans-serif] text-sm text-gray-700">Database</span>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-xs font-['Poppins',sans-serif] font-semibold ${
+                              healthData.services.database.status === "operational" ? "text-green-600" :
+                              healthData.services.database.status === "degraded" ? "text-yellow-600" : "text-red-600"
+                            }`}>
+                              {healthData.services.database.status}
+                            </span>
+                            {healthData.services.database.latencyMs != null && (
+                              <p className="font-['Lato',sans-serif] text-gray-400 text-xs">{healthData.services.database.latencyMs}ms</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Storage */}
+                      {healthData.services?.storage && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex rounded-full h-2.5 w-2.5 ${statusDotClass(healthData.services.storage.status)}`} />
+                            <span className="font-['Poppins',sans-serif] text-sm text-gray-700">Storage</span>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-xs font-['Poppins',sans-serif] font-semibold ${
+                              healthData.services.storage.status === "operational" ? "text-green-600" :
+                              healthData.services.storage.status === "degraded" ? "text-yellow-600" : "text-red-600"
+                            }`}>
+                              {healthData.services.storage.status}
+                            </span>
+                            {healthData.services.storage.latencyMs != null && (
+                              <p className="font-['Lato',sans-serif] text-gray-400 text-xs">{healthData.services.storage.latencyMs}ms</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Uptime */}
+                      <div className="pt-2 border-t border-[#f3f4f6]">
+                        <p className="font-['Lato',sans-serif] text-gray-400 text-xs">
+                          Uptime: <span className="text-gray-600 font-semibold">{formatUptime(healthData.uptimeSeconds)}</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Notification Bell */}
             <div ref={notifRef} className="relative">
               <button
@@ -367,10 +524,6 @@ export default function ChildLayout({ children }: { children: React.ReactNode })
 
               {profileOpen && (
                 <div className="absolute right-0 top-full mt-2 w-full min-w-[160px] bg-white rounded-2xl shadow-xl border border-[#e0e7e7] z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[#f3f4f6]">
-                    <p className="font-['Poppins',sans-serif] font-bold text-gray-800 text-sm truncate">{userName}</p>
-                    <p className="font-['Lato',sans-serif] text-gray-400 text-xs">B-Kids Member</p>
-                  </div>
                   <Link
                     href="/child/profile"
                     onClick={() => setProfileOpen(false)}

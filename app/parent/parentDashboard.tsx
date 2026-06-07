@@ -193,6 +193,23 @@ export function ParentDashboard() {
       if (!res.ok) { setAllocateError(data.message ?? "Gagal melakukan transfer"); return; }
       setAllocateSuccess(data.message ?? "Transfer berhasil!");
       setProfile((prev) => prev ? { ...prev, balance: prev.balance - amount } : prev);
+      setChildren((prev) =>
+        prev.map((c) =>
+          c.id === allocateChildId && c.account
+            ? { ...c, account: { ...c.account, balance: c.account.balance + amount } }
+            : c
+        )
+      );
+      const newTx: ParentTransaction = {
+        id: data.data?.transactionId ?? String(Date.now()),
+        type: "DEBIT",
+        source: "TRANSFER_TO_CHILD",
+        amount,
+        relatedChild: { fullName: childName(allocateChildId) },
+        notes: allocateNotes.trim() || null,
+        createdAt: new Date().toISOString(),
+      };
+      setRecentTx((prev) => [newTx, ...prev].slice(0, 5));
       setAllocateAmount("");
       setAllocateNotes("");
     } catch {

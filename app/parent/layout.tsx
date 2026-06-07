@@ -65,6 +65,25 @@ interface ParentNotif {
   isCredit?: boolean;
 }
 
+type ServiceStatus = "operational" | "degraded" | "down";
+
+interface HealthService {
+  name: string;
+  status: ServiceStatus;
+  statusLabel: string;
+  latencyMs: number | null;
+}
+
+interface HealthData {
+  status: ServiceStatus;
+  statusLabel: string;
+  uptimeSeconds: number;
+  services: {
+    database: HealthService;
+    storage: HealthService;
+  };
+}
+
 function timeAgo(str: string): string {
   const diff = Date.now() - new Date(str).getTime();
   const mins = Math.floor(diff / 60000);
@@ -76,6 +95,22 @@ function timeAgo(str: string): string {
   return "Baru saja";
 }
 
+function formatUptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return `${d}h ${h}j`;
+  if (h > 0) return `${h}j ${m}m`;
+  return `${m}m`;
+}
+
+function statusDotClass(status: ServiceStatus | "unknown"): string {
+  if (status === "operational") return "bg-green-500";
+  if (status === "degraded") return "bg-yellow-500";
+  if (status === "down") return "bg-red-500";
+  return "bg-gray-400";
+}
+
 export default function ParentLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -83,13 +118,21 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
+  // Notification state
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState<ParentNotif[]>([]);
   const [notifLoading, setNotifLoading] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+
+  // Health state
+  const [healthOpen, setHealthOpen] = useState(false);
+  const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [healthStatus, setHealthStatus] = useState<ServiceStatus | "unknown">("unknown");
+
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const healthRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -101,7 +144,6 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     setUserName(localStorage.getItem("userName") ?? "Orang Tua");
     setAuthChecked(true);
 
-    // Pre-fetch pending count for badge
     authFetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => {
@@ -113,10 +155,32 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
       .catch(() => {});
   }, [router]);
 
+  // Health check — on mount + every 60s
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/health`);
+        const d = await res.json();
+        if (d.success && d.data) {
+          setHealthData(d.data);
+          setHealthStatus(d.data.status);
+        } else {
+          setHealthStatus("down");
+        }
+      } catch {
+        setHealthStatus("down");
+      }
+    };
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+      if (healthRef.current && !healthRef.current.contains(e.target as Node)) setHealthOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -168,7 +232,6 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
         });
       }
 
-      // Sort newest first, cap at 5
       items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
       setNotifications(items.slice(0, 5));
     } catch { /* ignore */ }
@@ -177,13 +240,21 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
   const handleNotifClick = () => {
     setProfileOpen(false);
+    setHealthOpen(false);
     if (!notifOpen) fetchNotifications();
     setNotifOpen((o) => !o);
   };
 
   const handleProfileClick = () => {
     setNotifOpen(false);
+    setHealthOpen(false);
     setProfileOpen((o) => !o);
+  };
+
+  const handleHealthClick = () => {
+    setNotifOpen(false);
+    setProfileOpen(false);
+    setHealthOpen((o) => !o);
   };
 
   const handleLogout = async () => {
@@ -215,12 +286,8 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="min-h-screen bg-[#f8fafa] flex">
-      {/* Mobile overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/40 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
@@ -229,7 +296,6 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto`}
       >
-        {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-[#e0e7e7]">
           <div className="bg-gradient-to-br from-bsi-teal-primary to-bsi-teal-secondary w-9 h-9 rounded-xl flex items-center justify-center shadow-sm">
             <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -237,16 +303,11 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
             </svg>
           </div>
           <div>
-            <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg leading-tight">
-              B-Kids
-            </span>
-            <p className="font-['Lato',sans-serif] text-gray-400 text-[10px] leading-tight">
-              Portal Orang Tua
-            </p>
+            <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg leading-tight">B-Kids</span>
+            <p className="font-['Lato',sans-serif] text-gray-400 text-[10px] leading-tight">Portal Orang Tua</p>
           </div>
         </div>
 
-        {/* Nav items */}
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const active = isExact(item.href);
@@ -256,9 +317,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-['Poppins',sans-serif] font-semibold text-sm transition-all ${
-                  active
-                    ? "bg-bsi-teal-primary text-white shadow-sm"
-                    : "text-gray-600 hover:bg-[#f0f9f9] hover:text-bsi-teal-primary"
+                  active ? "bg-bsi-teal-primary text-white shadow-sm" : "text-gray-600 hover:bg-[#f0f9f9] hover:text-bsi-teal-primary"
                 }`}
               >
                 {item.icon}
@@ -273,7 +332,6 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
           })}
         </nav>
 
-        {/* Logout */}
         <div className="px-4 py-4 border-t border-[#e0e7e7]">
           <button
             onClick={handleLogout}
@@ -289,12 +347,8 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
         <header className="bg-white/80 backdrop-blur-sm border-b border-[#e0e7e7] sticky top-0 z-10 h-14 flex items-center px-4 sm:px-6">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 mr-2"
-          >
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 mr-2">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
@@ -302,8 +356,87 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
           <div className="flex-1" />
 
-          {/* Right side */}
           <div className="flex items-center gap-1">
+
+            {/* System Health Indicator */}
+            <div ref={healthRef} className="relative">
+              <button
+                onClick={handleHealthClick}
+                className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center"
+                aria-label="Status Sistem"
+                title="Status Sistem"
+              >
+                <span className="relative flex h-3 w-3">
+                  {healthStatus !== "operational" && healthStatus !== "unknown" && (
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${statusDotClass(healthStatus)}`} />
+                  )}
+                  <span className={`relative inline-flex rounded-full h-3 w-3 ${statusDotClass(healthStatus)}`} />
+                </span>
+              </button>
+
+              {healthOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[#e0e7e7] z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[#f3f4f6] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${statusDotClass(healthStatus)}`} />
+                      <h4 className="font-['Poppins',sans-serif] font-bold text-gray-800 text-sm">Status Sistem</h4>
+                    </div>
+                    <span className={`font-['Poppins',sans-serif] font-semibold text-xs px-2 py-0.5 rounded-full ${
+                      healthStatus === "operational" ? "bg-green-100 text-green-700" :
+                      healthStatus === "degraded" ? "bg-yellow-100 text-yellow-700" :
+                      healthStatus === "down" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-500"
+                    }`}>
+                      {healthData?.statusLabel ?? "Memeriksa..."}
+                    </span>
+                  </div>
+
+                  <div className="p-4 space-y-3">
+                    {healthData ? (
+                      <>
+                        {([
+                          { key: "database", label: "Database" },
+                          { key: "storage", label: "Storage" },
+                        ] as const).map(({ key, label }) => {
+                          const svc = healthData.services?.[key];
+                          if (!svc) return null;
+                          return (
+                            <div key={key} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${statusDotClass(svc.status)}`} />
+                                <span className="font-['Poppins',sans-serif] text-gray-700 text-sm">{label}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {svc.latencyMs != null && (
+                                  <span className="font-['Lato',sans-serif] text-gray-400 text-xs">{svc.latencyMs}ms</span>
+                                )}
+                                <span className={`font-['Poppins',sans-serif] font-semibold text-xs ${
+                                  svc.status === "operational" ? "text-green-600" :
+                                  svc.status === "degraded" ? "text-yellow-600" : "text-red-600"
+                                }`}>
+                                  {svc.status}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div className="pt-2 border-t border-[#f3f4f6] flex items-center justify-between">
+                          <span className="font-['Lato',sans-serif] text-gray-400 text-xs">Uptime</span>
+                          <span className="font-['Poppins',sans-serif] font-semibold text-gray-600 text-xs">{formatUptime(healthData.uptimeSeconds)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-3">
+                        <svg className="animate-spin w-5 h-5 text-bsi-teal-primary mx-auto" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Notification Bell */}
             <div ref={notifRef} className="relative">
               <button
@@ -345,11 +478,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                         <div key={n.id} className="px-4 py-3 hover:bg-[#f9fafa] transition-colors">
                           <div className="flex items-start gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                              n.type === "pending_chore"
-                                ? "bg-amber-50"
-                                : n.isCredit
-                                ? "bg-green-50"
-                                : "bg-red-50"
+                              n.type === "pending_chore" ? "bg-amber-50" : n.isCredit ? "bg-green-50" : "bg-red-50"
                             }`}>
                               {n.type === "pending_chore" ? (
                                 <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
@@ -367,9 +496,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-['Poppins',sans-serif] font-semibold text-gray-800 text-xs leading-tight">{n.title}</p>
-                              {n.subtitle && (
-                                <p className="font-['Lato',sans-serif] text-gray-500 text-xs truncate mt-0.5">{n.subtitle}</p>
-                              )}
+                              {n.subtitle && <p className="font-['Lato',sans-serif] text-gray-500 text-xs truncate mt-0.5">{n.subtitle}</p>}
                               <p className="font-['Lato',sans-serif] text-gray-300 text-xs mt-0.5">{timeAgo(n.time)}</p>
                             </div>
                           </div>
@@ -378,18 +505,10 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                     </div>
                   )}
                   <div className="px-4 py-2.5 border-t border-[#f3f4f6] flex items-center justify-between">
-                    <Link
-                      href="/parent/pending-actions"
-                      onClick={() => setNotifOpen(false)}
-                      className="font-['Poppins',sans-serif] font-bold text-amber-600 text-xs hover:underline"
-                    >
+                    <Link href="/parent/pending-actions" onClick={() => setNotifOpen(false)} className="font-['Poppins',sans-serif] font-bold text-amber-600 text-xs hover:underline">
                       Lihat aksi pending →
                     </Link>
-                    <Link
-                      href="/parent/banking"
-                      onClick={() => setNotifOpen(false)}
-                      className="font-['Poppins',sans-serif] font-bold text-bsi-teal-primary text-xs hover:underline"
-                    >
+                    <Link href="/parent/banking" onClick={() => setNotifOpen(false)} className="font-['Poppins',sans-serif] font-bold text-bsi-teal-primary text-xs hover:underline">
                       Riwayat →
                     </Link>
                   </div>
@@ -413,10 +532,6 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
               {profileOpen && (
                 <div className="absolute right-0 top-full mt-2 w-full min-w-[160px] bg-white rounded-2xl shadow-xl border border-[#e0e7e7] z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[#f3f4f6]">
-                    <p className="font-['Poppins',sans-serif] font-bold text-gray-800 text-sm truncate">{userName}</p>
-                    <p className="font-['Lato',sans-serif] text-gray-400 text-xs">Orang Tua</p>
-                  </div>
                   <Link
                     href="/parent/profile"
                     onClick={() => setProfileOpen(false)}
@@ -439,10 +554,10 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                 </div>
               )}
             </div>
+
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 overflow-x-hidden">
           {children}
         </main>
