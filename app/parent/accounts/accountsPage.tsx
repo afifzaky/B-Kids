@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { authFetch } from "../../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -50,8 +51,8 @@ export function AccountsPage() {
 
     setIsLoading(true);
     Promise.all([
-      fetch(`${API_BASE_URL}/api/family/children`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
+      authFetch(`${API_BASE_URL}/api/family/children`, { headers: { Authorization: `Bearer ${token}` } }),
+      authFetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
     ])
       .then(([childrenRes, choresRes]) => Promise.all([childrenRes.json(), choresRes.json()]))
       .then(([childrenData, choresData]) => {
@@ -80,10 +81,10 @@ export function AccountsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-['Montserrat',sans-serif] font-bold text-2xl sm:text-3xl text-black">
-            Child Accounts
+            Akun Anak
           </h1>
           <p className="font-['Lato',sans-serif] text-gray-500 text-sm mt-1">
-            Monitor and manage your children's financial accounts
+            Pantau dan kelola akun keuangan anak Anda
           </p>
         </div>
         <Link
@@ -93,7 +94,7 @@ export function AccountsPage() {
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Add Child Account
+          Tambah Akun Anak
         </Link>
       </div>
 
@@ -106,7 +107,7 @@ export function AccountsPage() {
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
               </svg>
             </div>
-            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Total Accounts</h3>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Total Akun</h3>
             <p className="font-['Montserrat',sans-serif] font-bold text-2xl text-[#030213]">{children.length}</p>
           </div>
 
@@ -116,7 +117,7 @@ export function AccountsPage() {
                 <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
               </svg>
             </div>
-            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Combined Balance</h3>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Total Saldo</h3>
             <p className="font-['Montserrat',sans-serif] font-bold text-xl text-[#030213]">{formatRupiah(combinedBalance)}</p>
           </div>
 
@@ -126,7 +127,7 @@ export function AccountsPage() {
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
             </div>
-            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Active Challenges</h3>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Tantangan Aktif</h3>
             <p className="font-['Montserrat',sans-serif] font-bold text-2xl text-[#030213]">{activeChallengess}</p>
           </div>
 
@@ -136,7 +137,7 @@ export function AccountsPage() {
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
               </svg>
             </div>
-            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Pending Approvals</h3>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Menunggu Persetujuan</h3>
             <p className="font-['Montserrat',sans-serif] font-bold text-2xl text-[#030213]">{pendingApprovals}</p>
           </div>
         </div>
@@ -226,7 +227,7 @@ export function AccountsPage() {
                     </div>
                     <div>
                       <p className="font-['Poppins',sans-serif] font-bold text-[#9ca3af] text-[10px] tracking-widest uppercase mb-1">
-                        CHALLENGES
+                        TANTANGAN
                       </p>
                       <p className="font-['Montserrat',sans-serif] font-bold text-blue-600 text-lg">
                         {activeChallenges} aktif
@@ -238,7 +239,7 @@ export function AccountsPage() {
                     href={`/parent/child-account/${child.id}`}
                     className="block text-center bg-gradient-to-r from-bsi-teal-primary to-bsi-teal-secondary hover:from-bsi-teal-hover-dark hover:to-bsi-teal-hover-light text-white font-['Poppins',sans-serif] font-bold text-xs py-2.5 rounded-xl transition-all"
                   >
-                    View Details →
+                    Lihat Detail →
                   </Link>
                 </div>
               </div>

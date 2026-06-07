@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { authFetch } from "../../../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -78,7 +79,7 @@ export function PocketDetailPage() {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
-    fetch(`${API_BASE_URL}/api/pockets/${pocketId}`, {
+    authFetch(`${API_BASE_URL}/api/pockets/${pocketId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -136,7 +137,7 @@ export function PocketDetailPage() {
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Back to My Pockets
+          Kembali ke Kantongku
         </Link>
 
         {/* Pocket Header */}
@@ -164,7 +165,7 @@ export function PocketDetailPage() {
         {/* Balance Card */}
         <div className="bg-white rounded-3xl border border-[rgba(189,201,201,0.3)] shadow-sm p-6 sm:p-8 mb-6">
           <h2 className="font-['Poppins',sans-serif] font-bold text-[#6b7280] text-xs uppercase tracking-wide mb-3">
-            Current Balance
+            Saldo Saat Ini
           </h2>
           <p className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-4xl sm:text-5xl mb-6">
             {formatRupiah(pocket.balance)}
@@ -173,13 +174,13 @@ export function PocketDetailPage() {
           {pocket.targetAmount !== null && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="font-['Poppins',sans-serif] text-[#6b7280] text-sm">Target Amount</span>
+                <span className="font-['Poppins',sans-serif] text-[#6b7280] text-sm">Target</span>
                 <span className="font-['Poppins',sans-serif] font-bold text-[#030213] text-sm">
                   {formatRupiah(pocket.targetAmount)}
                 </span>
               </div>
               <div className="flex items-center justify-between mb-3">
-                <span className="font-['Poppins',sans-serif] font-bold text-[#6b7280] text-sm">Progress</span>
+                <span className="font-['Poppins',sans-serif] font-bold text-[#6b7280] text-sm">Progres</span>
                 <span className="font-['Poppins',sans-serif] font-bold text-black text-lg">
                   {pocket.progressPercent ?? 0}%
                 </span>
@@ -192,7 +193,7 @@ export function PocketDetailPage() {
               </div>
               {pocket.deadline && (
                 <p className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.5)] text-xs mt-2">
-                  Deadline: {formatDate(pocket.deadline)}
+                  Tenggat: {formatDate(pocket.deadline)}
                 </p>
               )}
             </div>
@@ -209,12 +210,12 @@ export function PocketDetailPage() {
         {pocket.targetAmount !== null && !pocket.isGoalCompleted && remaining > 0 && (
           <div className="bg-gradient-to-br from-bsi-teal-primary to-bsi-teal-secondary rounded-3xl shadow-lg p-6 sm:p-8 mb-6 text-white">
             <h2 className="font-['Montserrat',sans-serif] font-bold text-xl sm:text-2xl mb-6">
-              Goal Insights
+              Info Tujuan
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
                 <p className="font-['Poppins',sans-serif] text-white/80 text-xs uppercase tracking-wide mb-2">
-                  Remaining Amount
+                  Sisa Target
                 </p>
                 <p className="font-['Montserrat',sans-serif] font-bold text-2xl sm:text-3xl">
                   {formatRupiah(remaining)}
@@ -222,13 +223,13 @@ export function PocketDetailPage() {
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
                 <p className="font-['Poppins',sans-serif] text-white/80 text-xs uppercase tracking-wide mb-2">
-                  Estimated Completion
+                  Estimasi Selesai
                 </p>
                 <p className="font-['Montserrat',sans-serif] font-bold text-2xl sm:text-3xl">
-                  ~{weeksToGo} weeks
+                  ~{weeksToGo} minggu
                 </p>
                 <p className="font-['Lato',sans-serif] text-white/70 text-xs mt-1">
-                  At Rp 100.000/week
+                  Dengan Rp 100.000/minggu
                 </p>
               </div>
             </div>
@@ -238,7 +239,7 @@ export function PocketDetailPage() {
         {/* Pocket Activity */}
         <div className="bg-white rounded-3xl border border-[rgba(189,201,201,0.3)] shadow-sm p-6 sm:p-8">
           <h2 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-xl sm:text-2xl mb-6">
-            Pocket Activity
+            Aktivitas Kantong
           </h2>
 
           {pocket.ledger.length > 0 ? (

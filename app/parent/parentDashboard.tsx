@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { authFetch } from "../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -104,10 +105,10 @@ export function ParentDashboard() {
     if (!token) return;
 
     Promise.all([
-      fetch(`${API_BASE_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${API_BASE_URL}/api/family/children`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${API_BASE_URL}/api/parent/banking/account`, { headers: { Authorization: `Bearer ${token}` } }),
+      authFetch(`${API_BASE_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
+      authFetch(`${API_BASE_URL}/api/family/children`, { headers: { Authorization: `Bearer ${token}` } }),
+      authFetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
+      authFetch(`${API_BASE_URL}/api/parent/banking/account`, { headers: { Authorization: `Bearer ${token}` } }),
     ])
       .then(([profileRes, childrenRes, choresRes, bankingRes]) =>
         Promise.all([profileRes.json(), childrenRes.json(), choresRes.json(), bankingRes.json()])
@@ -139,7 +140,7 @@ export function ParentDashboard() {
     setTopUpError(null);
     const token = localStorage.getItem("accessToken");
     try {
-      const res = await fetch(`${API_BASE_URL}/api/parent/banking/deposit`, {
+      const res = await authFetch(`${API_BASE_URL}/api/parent/banking/deposit`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ amount, ...(topUpNotes.trim() ? { notes: topUpNotes.trim() } : {}) }),
@@ -184,7 +185,7 @@ export function ParentDashboard() {
       const token = localStorage.getItem("accessToken");
       const body: Record<string, unknown> = { childProfileId: allocateChildId, amount };
       if (allocateNotes.trim()) body.notes = allocateNotes.trim();
-      const res = await fetch(`${API_BASE_URL}/api/parent/banking/transfer`, {
+      const res = await authFetch(`${API_BASE_URL}/api/parent/banking/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),

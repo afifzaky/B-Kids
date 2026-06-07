@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { authFetch } from "../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -83,7 +83,6 @@ function LoadingScreen() {
 }
 
 export function ChildDashboard() {
-  const router = useRouter();
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -115,40 +114,35 @@ export function ChildDashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/auth/child/login");
-      return;
-    }
+    if (!token) return;
 
-    fetch(`${API_BASE_URL}/api/auth/me`, {
+    authFetch(`${API_BASE_URL}/api/child/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(async (res) => {
-        if (res.status === 401) {
-          localStorage.clear();
-          router.push("/auth/child/login");
-          throw new Error("unauthorized");
-        }
-        return res.json();
-      })
+      .then((r) => r.json())
       .then((data) => {
-        if (data.data?.role !== "CHILD") {
-          router.push("/auth/child/login");
-          return;
+        if (data.success) {
+          const p = data.data;
+          setProfile({
+            id: p.id,
+            fullName: p.fullName,
+            username: p.username,
+            childAccountNumber: p.childAccountNumber,
+            account: null,
+          });
+          fetchDashboardData(token);
         }
-        setProfile(data.data.profile);
-        fetchDashboardData(token);
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
-  }, [router]);
+  }, []);
 
   const fetchPockets = async () => {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
     setMovePocketsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pockets`, {
+      const res = await authFetch(`${API_BASE_URL}/api/pockets`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -173,10 +167,10 @@ export function ChildDashboard() {
   const fetchDashboardData = async (token: string) => {
     try {
       const [dashRes, choresRes, pocketsRes, txRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/child/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE_URL}/api/pockets`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE_URL}/api/child/transactions?limit=5`, { headers: { Authorization: `Bearer ${token}` } }),
+        authFetch(`${API_BASE_URL}/api/child/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
+        authFetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
+        authFetch(`${API_BASE_URL}/api/pockets`, { headers: { Authorization: `Bearer ${token}` } }),
+        authFetch(`${API_BASE_URL}/api/child/transactions?limit=5`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const [dashData, choresData, pocketsData, txData] = await Promise.all([
         dashRes.json(), choresRes.json(), pocketsRes.json(), txRes.json(),
@@ -221,7 +215,7 @@ export function ChildDashboard() {
     setMoveSuccess(null);
     const token = localStorage.getItem("accessToken");
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pockets/${moveSelectedPocket}/topup`, {
+      const res = await authFetch(`${API_BASE_URL}/api/pockets/${moveSelectedPocket}/topup`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ amount, ...(moveNotes.trim() ? { notes: moveNotes.trim() } : {}) }),
@@ -231,10 +225,7 @@ export function ChildDashboard() {
       setMoveSuccess("Uang berhasil dipindahkan ke kantong!");
       setMoveAmount("");
       setMoveNotes("");
-      // Refresh balance
-      const me = await fetch(`${API_BASE_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
-      const meData = await me.json();
-      if (meData.data?.profile) setProfile(meData.data.profile);
+      if (token) fetchDashboardData(token);
     } catch {
       setMoveError("Gagal terhubung ke server");
     } finally {
@@ -263,7 +254,7 @@ export function ChildDashboard() {
     setInfaqError(null);
     const token = localStorage.getItem("accessToken");
     try {
-      const res = await fetch(`${API_BASE_URL}/api/infaq`, {
+      const res = await authFetch(`${API_BASE_URL}/api/infaq`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -278,10 +269,7 @@ export function ChildDashboard() {
       setInfaqSuccessData({ institution: institutionName, amount });
       setShowInfaqModal(false);
       setShowInfaqSuccess(true);
-      // Refresh balance
-      const me = await fetch(`${API_BASE_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
-      const meData = await me.json();
-      if (meData.data?.profile) setProfile(meData.data.profile);
+      if (token) fetchDashboardData(token);
     } catch {
       setInfaqError("Gagal terhubung ke server");
     } finally {

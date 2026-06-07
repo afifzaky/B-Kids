@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { authFetch } from "../../../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -91,9 +92,9 @@ const CHORE_STATUS_COLORS: Record<string, string> = {
 };
 
 const PERIOD_LABELS: Record<string, string> = {
-  DAILY: "Daily",
-  WEEKLY: "Weekly",
-  MONTHLY: "Monthly",
+  DAILY: "Harian",
+  WEEKLY: "Mingguan",
+  MONTHLY: "Bulanan",
 };
 
 export function ChildAccountDetailPage() {
@@ -115,8 +116,8 @@ export function ChildAccountDetailPage() {
     if (!token) return;
 
     Promise.all([
-      fetch(`${API_BASE_URL}/api/parent/summary/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
+      authFetch(`${API_BASE_URL}/api/parent/summary/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+      authFetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
     ])
       .then(([summaryRes, choresRes]) => Promise.all([summaryRes.json(), choresRes.json()]))
       .then(([summaryData, choresData]) => {
@@ -161,7 +162,7 @@ export function ChildAccountDetailPage() {
     setLimitsSubmitting(true);
     setLimitsError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/limits/${id}`, {
+      const res = await authFetch(`${API_BASE_URL}/api/limits/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
@@ -222,7 +223,7 @@ export function ChildAccountDetailPage() {
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
-        Back to Child Accounts
+        Kembali ke Akun Anak
       </Link>
 
       {/* Header */}
@@ -257,7 +258,7 @@ export function ChildAccountDetailPage() {
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
-              Create Challenge
+              Buat Tantangan
             </Link>
             <Link
               href="/parent/pending-actions"
@@ -266,7 +267,7 @@ export function ChildAccountDetailPage() {
               <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
               </svg>
-              Pending Actions
+              Tinjau Tugas
             </Link>
           </div>
         </div>
@@ -280,7 +281,7 @@ export function ChildAccountDetailPage() {
               <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
             </svg>
           </div>
-          <p className="font-['Poppins',sans-serif] font-semibold text-white/70 text-xs tracking-widest uppercase mb-1">MAIN BALANCE</p>
+          <p className="font-['Poppins',sans-serif] font-semibold text-white/70 text-xs tracking-widest uppercase mb-1">SALDO UTAMA</p>
           <p className="font-['Montserrat',sans-serif] font-bold text-2xl">
             {summary.account ? formatRupiah(summary.account.balance) : "Rp —"}
           </p>
@@ -292,7 +293,7 @@ export function ChildAccountDetailPage() {
               <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
             </svg>
           </div>
-          <p className="font-['Poppins',sans-serif] font-semibold text-gray-400 text-xs tracking-widest uppercase mb-1">POCKET BALANCE</p>
+          <p className="font-['Poppins',sans-serif] font-semibold text-gray-400 text-xs tracking-widest uppercase mb-1">SALDO KANTONG</p>
           <p className="font-['Montserrat',sans-serif] font-bold text-gray-900 text-2xl">{formatRupiah(totalPocketBalance)}</p>
           <p className="font-['Lato',sans-serif] text-gray-400 text-xs mt-0.5">{summary.account?.pockets.length ?? 0} kantong aktif</p>
         </div>
@@ -302,7 +303,7 @@ export function ChildAccountDetailPage() {
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
           </div>
-          <p className="font-['Poppins',sans-serif] font-semibold text-gray-400 text-xs tracking-widest uppercase mb-1">ACTIVE CHALLENGES</p>
+          <p className="font-['Poppins',sans-serif] font-semibold text-gray-400 text-xs tracking-widest uppercase mb-1">TANTANGAN AKTIF</p>
           <p className="font-['Montserrat',sans-serif] font-bold text-blue-600 text-2xl">{activeChores.length}</p>
         </div>
         <div className="bg-white rounded-2xl border border-[#e0e7e7] shadow-sm p-5">
@@ -311,7 +312,7 @@ export function ChildAccountDetailPage() {
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
           </div>
-          <p className="font-['Poppins',sans-serif] font-semibold text-gray-400 text-xs tracking-widest uppercase mb-1">MONTHLY REWARDS</p>
+          <p className="font-['Poppins',sans-serif] font-semibold text-gray-400 text-xs tracking-widest uppercase mb-1">REWARD BULAN INI</p>
           <p className="font-['Montserrat',sans-serif] font-bold text-green-600 text-2xl">{formatRupiah(summary.monthlyStats.choreRewards)}</p>
         </div>
       </div>
@@ -320,9 +321,9 @@ export function ChildAccountDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <div className="lg:col-span-8 bg-white rounded-2xl border border-[#e0e7e7] shadow-sm p-6">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg">Active Challenges</h3>
+            <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg">Tantangan Aktif</h3>
             <Link href="/parent/child-tasks" className="text-bsi-teal-primary font-['Poppins',sans-serif] font-semibold text-xs hover:underline">
-              View All →
+              Lihat Semua →
             </Link>
           </div>
           {activeChores.length > 0 ? (
@@ -332,12 +333,12 @@ export function ChildAccountDetailPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className={`px-2 py-0.5 rounded-full font-['Poppins',sans-serif] font-bold text-[10px] ${CHORE_STATUS_COLORS[chore.status] ?? "bg-gray-100 text-gray-500"}`}>
-                        {chore.status === "ACTIVE" ? "Active" : chore.status === "PENDING_REVIEW" ? "Pending Review" : "Needs Revision"}
+                        {chore.status === "ACTIVE" ? "Aktif" : chore.status === "PENDING_REVIEW" ? "Menunggu Review" : "Perlu Revisi"}
                       </span>
                     </div>
                     <p className="font-['Poppins',sans-serif] font-bold text-[#030213] text-sm truncate">{chore.title}</p>
                     <p className="font-['Lato',sans-serif] text-[#6b7280] text-xs mt-0.5">
-                      {chore.category} · Due {formatDeadline(chore.deadline)}
+                      {chore.category} · Tenggat: {formatDeadline(chore.deadline)}
                     </p>
                   </div>
                   <p className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-sm ml-4 shrink-0">
@@ -356,7 +357,7 @@ export function ChildAccountDetailPage() {
 
         <div className="lg:col-span-4 bg-white rounded-2xl border border-[#e0e7e7] shadow-sm p-6">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg">Spending Limits</h3>
+            <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg">Batas Pengeluaran</h3>
             <button
               onClick={openLimitsModal}
               className="inline-flex items-center gap-1.5 text-bsi-teal-primary hover:text-bsi-teal-hover-dark font-['Poppins',sans-serif] font-semibold text-xs transition-colors"
@@ -373,17 +374,14 @@ export function ChildAccountDetailPage() {
                 <div key={limit.period} className="p-4 bg-[#f8fafa] rounded-xl border border-[#e0e7e7]">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm capitalize">
-                      {limit.period === "DAILY" ? "Daily" : limit.period === "WEEKLY" ? "Weekly" : "Monthly"}
+                      {limit.period === "DAILY" ? "Harian" : limit.period === "WEEKLY" ? "Mingguan" : "Bulanan"}
                     </span>
                     <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-sm">
                       {formatRupiah(limit.limitAmount)}
                     </span>
                   </div>
-                  <div className="bg-white h-2 rounded-full overflow-hidden">
-                    <div className="bg-bsi-teal-secondary h-full w-[40%] rounded-full" />
-                  </div>
                   {limit.excludeInfaq && (
-                    <p className="font-['Lato',sans-serif] text-gray-400 text-xs mt-1">Infaq excluded</p>
+                    <p className="font-['Lato',sans-serif] text-gray-400 text-xs mt-1">Infaq dikecualikan</p>
                   )}
                 </div>
               ))}
@@ -404,7 +402,7 @@ export function ChildAccountDetailPage() {
       {/* Pockets Grid */}
       <div className="bg-white rounded-2xl border border-[#e0e7e7] shadow-sm p-6">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg">My Pockets</h3>
+          <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg">Kantong Saya</h3>
           <span className="font-['Lato',sans-serif] text-[#6b7280] text-sm">{summary.account?.pockets.length ?? 0} kantong</span>
         </div>
         {summary.account && summary.account.pockets.length > 0 ? (
@@ -454,7 +452,7 @@ export function ChildAccountDetailPage() {
 
       {/* Recent Transactions */}
       <div className="bg-white rounded-2xl border border-[#e0e7e7] shadow-sm p-6">
-        <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg mb-5">Recent Transactions</h3>
+        <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg mb-5">Transaksi Terbaru</h3>
         {summary.recentTransactions.length > 0 ? (
           <div className="space-y-2">
             {summary.recentTransactions.map((tx) => (
@@ -495,7 +493,7 @@ export function ChildAccountDetailPage() {
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-xl">Edit Spending Limits</h2>
+                <h2 className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-xl">Edit Batas Pengeluaran</h2>
                 <p className="font-['Lato',sans-serif] text-gray-500 text-xs mt-0.5">Kosongkan field untuk tidak mengubah limit tersebut</p>
               </div>
               <button onClick={() => setShowLimitsModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
@@ -509,7 +507,7 @@ export function ChildAccountDetailPage() {
               {(["daily", "weekly", "monthly"] as const).map((period) => (
                 <div key={period}>
                   <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1.5">
-                    {PERIOD_LABELS[period.toUpperCase()]} Limit (Rp)
+                    Batas {PERIOD_LABELS[period.toUpperCase()]} (Rp)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-['Poppins',sans-serif]">Rp</span>
@@ -527,7 +525,7 @@ export function ChildAccountDetailPage() {
 
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <p className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">Exclude Infaq</p>
+                  <p className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">Kecualikan Infaq</p>
                   <p className="font-['Lato',sans-serif] text-gray-400 text-xs">Transaksi infaq tidak dihitung dalam limit</p>
                 </div>
                 <button

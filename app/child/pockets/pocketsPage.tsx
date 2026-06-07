@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { authFetch } from "../../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -94,7 +95,7 @@ export function PocketsPage() {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
     setIsLoading(true);
-    fetch(`${API_BASE_URL}/api/pockets`, {
+    authFetch(`${API_BASE_URL}/api/pockets`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -135,7 +136,7 @@ export function PocketsPage() {
     if (createIntention.trim()) body.intentionText = createIntention.trim();
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pockets`, {
+      const res = await authFetch(`${API_BASE_URL}/api/pockets`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
@@ -161,7 +162,7 @@ export function PocketsPage() {
 
     const token = localStorage.getItem("accessToken");
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pockets/${topupPocket.id}/topup`, {
+      const res = await authFetch(`${API_BASE_URL}/api/pockets/${topupPocket.id}/topup`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ amount }),
@@ -202,7 +203,7 @@ export function PocketsPage() {
       intentionText: editIntention.trim() || null,
     };
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pockets/${editPocket.id}`, {
+      const res = await authFetch(`${API_BASE_URL}/api/pockets/${editPocket.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
@@ -222,7 +223,7 @@ export function PocketsPage() {
     setDeleteLoading(true);
     const token = localStorage.getItem("accessToken");
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pockets/${pocketId}`, {
+      const res = await authFetch(`${API_BASE_URL}/api/pockets/${pocketId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -426,13 +427,13 @@ export function PocketsPage() {
                       disabled={pocket.isGoalCompleted}
                       className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-2.5 font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors"
                     >
-                      {pocket.isGoalCompleted ? "Terpenuhi ✓" : "Add Money"}
+                      {pocket.isGoalCompleted ? "Terpenuhi ✓" : "Isi Kantong"}
                     </button>
                     <Link
                       href={`/child/pockets/${pocket.id}`}
                       className="flex-1 bg-white border border-bsi-teal-primary text-bsi-teal-primary hover:bg-bsi-teal-primary/5 rounded-xl py-2.5 font-['Poppins',sans-serif] font-bold text-sm transition-colors text-center"
                     >
-                      Details
+                      Detail
                     </Link>
                   </div>
                 </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { authFetch } from "../../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -102,7 +103,7 @@ export function AddChildPage() {
       const dob = new Date(formData.dateOfBirth);
       dob.setUTCHours(0, 0, 0, 0);
 
-      const res = await fetch(`${API_BASE_URL}/api/auth/children`, {
+      const res = await authFetch(`${API_BASE_URL}/api/auth/children`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

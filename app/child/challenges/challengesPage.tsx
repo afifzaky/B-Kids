@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { authFetch } from "../../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -84,7 +85,7 @@ export function ChallengesPage() {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
-    fetch(`${API_BASE_URL}/api/chores`, {
+    authFetch(`${API_BASE_URL}/api/chores`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -114,7 +115,7 @@ export function ChallengesPage() {
     if (submitMediaUrl.trim()) body.mediaUrl = submitMediaUrl.trim();
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/chores/${submitModal.choreId}/submit`, {
+      const res = await authFetch(`${API_BASE_URL}/api/chores/${submitModal.choreId}/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

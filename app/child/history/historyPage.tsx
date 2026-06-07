@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { authFetch } from "../../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -85,7 +86,7 @@ export function HistoryPage() {
     if (!token) return;
     setIsLoading(true);
 
-    fetch(`${API_BASE_URL}/api/child/transactions?page=${p}&limit=20`, {
+    authFetch(`${API_BASE_URL}/api/child/transactions?page=${p}&limit=20`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {

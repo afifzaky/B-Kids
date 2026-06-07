@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { authFetch } from "../../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -112,9 +113,9 @@ export function VoucherPage() {
 
     try {
       const [vRes, rRes, pRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/vouchers`, { headers: authHeader() }),
-        fetch(`${API_BASE_URL}/api/vouchers/history`, { headers: authHeader() }),
-        fetch(`${API_BASE_URL}/api/pockets`, { headers: authHeader() }),
+        authFetch(`${API_BASE_URL}/api/vouchers`, { headers: authHeader() }),
+        authFetch(`${API_BASE_URL}/api/vouchers/history`, { headers: authHeader() }),
+        authFetch(`${API_BASE_URL}/api/pockets`, { headers: authHeader() }),
       ]);
 
       const [vData, rData, pData] = await Promise.all([
@@ -167,7 +168,7 @@ export function VoucherPage() {
     setBuyLoading(true);
     setBuyError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/vouchers/buy`, {
+      const res = await authFetch(`${API_BASE_URL}/api/vouchers/buy`, {
         method: "POST",
         headers: authHeader(),
         body: JSON.stringify({ voucherId: buyVoucher.id, sourcePocketId: selectedPocketId }),

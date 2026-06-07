@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { authFetch } from "../../../../../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -68,7 +69,7 @@ export function PocketDetailPage() {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
-    fetch(`${API_BASE_URL}/api/parent/children/${childId}/pockets/${pocketId}`, {
+    authFetch(`${API_BASE_URL}/api/parent/children/${childId}/pockets/${pocketId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())

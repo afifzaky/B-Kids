@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { authFetch } from "../../lib/authFetch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -74,8 +75,8 @@ export function PendingActionsPage() {
     setIsLoading(true);
     try {
       const [choresRes, childrenRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE_URL}/api/family/children`, { headers: { Authorization: `Bearer ${token}` } }),
+        authFetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
+        authFetch(`${API_BASE_URL}/api/family/children`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const [choresData, childrenData] = await Promise.all([choresRes.json(), childrenRes.json()]);
       if (choresData.success) {
@@ -99,7 +100,7 @@ export function PendingActionsPage() {
     setActionError((prev) => ({ ...prev, [choreId]: "" }));
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`${API_BASE_URL}/api/chores/${choreId}/approve`, {
+      const res = await authFetch(`${API_BASE_URL}/api/chores/${choreId}/approve`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -132,7 +133,7 @@ export function PendingActionsPage() {
     setActionLoading(rejectModal.choreId);
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`${API_BASE_URL}/api/chores/${rejectModal.choreId}/reject`, {
+      const res = await authFetch(`${API_BASE_URL}/api/chores/${rejectModal.choreId}/reject`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ rejectionNote: rejectNote.trim() }),
@@ -175,10 +176,10 @@ export function PendingActionsPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="font-['Montserrat',sans-serif] font-bold text-2xl sm:text-3xl text-[#030213]">
-          Pending Actions
+          Tinjau Tugas
         </h1>
         <p className="font-['Poppins',sans-serif] text-[#6b7280] text-sm mt-1">
-          Review and approve your children's task submissions
+          Tinjau dan setujui pengumpulan tugas anak Anda
         </p>
       </div>
 
@@ -191,7 +192,7 @@ export function PendingActionsPage() {
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
               </svg>
             </div>
-            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Pending Reviews</h3>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Menunggu Review</h3>
             <p className="font-['Montserrat',sans-serif] font-bold text-2xl text-[#030213]">{chores.length}</p>
           </div>
 
@@ -201,7 +202,7 @@ export function PendingActionsPage() {
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             </div>
-            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Approved Today</h3>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Disetujui Hari Ini</h3>
             <p className="font-['Montserrat',sans-serif] font-bold text-2xl text-[#030213]">{approvedToday}</p>
           </div>
 
@@ -211,7 +212,7 @@ export function PendingActionsPage() {
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             </div>
-            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Rejected Today</h3>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Ditolak Hari Ini</h3>
             <p className="font-['Montserrat',sans-serif] font-bold text-2xl text-[#030213]">{rejectedToday}</p>
           </div>
 
@@ -221,7 +222,7 @@ export function PendingActionsPage() {
                 <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
               </svg>
             </div>
-            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Total Rewards Pending</h3>
+            <h3 className="font-['Poppins',sans-serif] text-[#6b7280] text-xs uppercase tracking-wide mb-1">Total Reward Tertunda</h3>
             <p className="font-['Montserrat',sans-serif] font-bold text-xl text-[#030213]">Rp {totalRewardsPending.toLocaleString("id-ID")}</p>
           </div>
         </div>
