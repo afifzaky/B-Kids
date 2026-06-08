@@ -3,7 +3,6 @@ import rateLimit from 'express-rate-limit';
 import { env } from '../../config/env';
 import { verifyToken } from '../../middleware/auth';
 import { checkRole } from '../../middleware/role';
-import { requireCaptcha } from '../../middleware/captcha';
 import * as AuthController from './auth.controller';
 import { AuthenticatedRequest } from '../../types';
 
@@ -22,19 +21,8 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Rate limiter untuk password reset & forgot-username — lebih ketat (5 req / 15 min)
-const passwordResetLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: {
-    success: false,
-    message: 'Terlalu banyak permintaan. Coba lagi dalam 15 menit.',
-    code: 'RATE_LIMIT_EXCEEDED',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: false,
-});
+// Rate limiter untuk password reset — diaktifkan kembali saat fitur di-enable
+// const passwordResetLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, ... });
 
 // Helper untuk casting req ke AuthenticatedRequest di routes yang butuh auth
 function asAuth(
@@ -49,16 +37,16 @@ function asAuth(
 // =============================================
 
 // POST /api/auth/register/parent
-router.post('/register/parent', requireCaptcha, AuthController.registerParent);
+router.post('/register/parent', AuthController.registerParent);
 
 // POST /api/auth/login/parent
-router.post('/login/parent', loginLimiter, requireCaptcha, AuthController.loginParent);
+router.post('/login/parent', loginLimiter, AuthController.loginParent);
 
 // POST /api/auth/login/child
-router.post('/login/child', loginLimiter, requireCaptcha, AuthController.loginChild);
+router.post('/login/child', loginLimiter, AuthController.loginChild);
 
 // POST /api/auth/login/admin
-router.post('/login/admin', loginLimiter, requireCaptcha, AuthController.loginAdmin);
+router.post('/login/admin', loginLimiter, AuthController.loginAdmin);
 
 // POST /api/auth/refresh
 router.post('/refresh', AuthController.refreshToken);
@@ -66,17 +54,12 @@ router.post('/refresh', AuthController.refreshToken);
 // POST /api/auth/logout — invalidasi sesi (tidak perlu Bearer token)
 router.post('/logout', AuthController.logout);
 
-// POST /api/auth/forgot-password — kirim link reset ke email (rate-limited, anti-enumeration)
-router.post('/forgot-password', passwordResetLimiter, AuthController.forgotPassword);
-
-// POST /api/auth/reset-password — terapkan password baru via token
-router.post('/reset-password', passwordResetLimiter, AuthController.resetPassword);
-
-// POST /api/auth/forgot-username — kirim username anak ke email parent (rate-limited)
-router.post('/forgot-username', passwordResetLimiter, AuthController.forgotUsername);
-
-// POST /api/auth/forgot-child-password — kirim link reset password anak ke email parent (rate-limited)
-router.post('/forgot-child-password', passwordResetLimiter, AuthController.forgotChildPassword);
+// Fitur password/username recovery — dinonaktifkan sementara, aktifkan kembali setelah
+// email service (SMTP) dikonfigurasi di environment production.
+// router.post('/forgot-password',       passwordResetLimiter, AuthController.forgotPassword);
+// router.post('/reset-password',        passwordResetLimiter, AuthController.resetPassword);
+// router.post('/forgot-username',       passwordResetLimiter, AuthController.forgotUsername);
+// router.post('/forgot-child-password', passwordResetLimiter, AuthController.forgotChildPassword);
 
 // =============================================
 // Protected routes (perlu token)
