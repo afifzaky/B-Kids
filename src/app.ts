@@ -19,6 +19,7 @@ import parentRoutes from './modules/parent/parent.routes';
 import healthRoutes from './modules/health/health.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import childRoutes from './modules/child/child.routes';
+import learningRoutes from './modules/learning/learning.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -120,6 +121,7 @@ export function createApp(): Application {
   app.use('/api/parent', parentRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/child', childRoutes);
+  app.use('/api/learning', learningRoutes);
 
   // =============================================
   // Error handlers (harus paling bawah)

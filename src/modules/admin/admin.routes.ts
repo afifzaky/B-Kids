@@ -3,6 +3,7 @@ import { verifyToken } from '../../middleware/auth';
 import { checkRole } from '../../middleware/role';
 import { asAuth } from '../../utils/as-auth';
 import * as AdminController from './admin.controller';
+import * as AdminLearningController from './admin.learning.controller';
 
 const router = Router();
 
@@ -90,5 +91,37 @@ router.get('/infaq/institutions', asAuth(AdminController.listInstitutions));
 router.post('/infaq/institutions', asAuth(AdminController.createInstitution));
 router.put('/infaq/institutions/:institutionId', asAuth(AdminController.updateInstitution));
 router.patch('/infaq/institutions/:institutionId/status', asAuth(AdminController.setInstitutionStatus));
+
+// =============================================
+// E-Learning Content Management
+// =============================================
+
+// GET  /api/admin/learning/stats                               — statistik engagement
+// GET  /api/admin/learning/modules                             — daftar semua modul
+// POST /api/admin/learning/modules                             — buat modul baru
+// PUT  /api/admin/learning/modules/:moduleId                   — update modul
+// DELETE /api/admin/learning/modules/:moduleId                 — hapus modul (hanya jika kosong)
+
+router.get('/learning/stats', asAuth(AdminLearningController.getLearningStats));
+router.get('/learning/modules', asAuth(AdminLearningController.listModules));
+router.post('/learning/modules', asAuth(AdminLearningController.createModule));
+router.put('/learning/modules/:moduleId', asAuth(AdminLearningController.updateModule));
+router.delete('/learning/modules/:moduleId', asAuth(AdminLearningController.deleteModule));
+
+// GET    /api/admin/learning/articles                          — daftar semua artikel
+// POST   /api/admin/learning/articles                          — buat artikel baru
+// GET    /api/admin/learning/articles/:articleId               — detail artikel + kuis
+// PUT    /api/admin/learning/articles/:articleId               — update artikel
+// DELETE /api/admin/learning/articles/:articleId               — hapus artikel + kuis
+// PUT    /api/admin/learning/articles/:articleId/quiz          — buat atau ganti kuis
+// DELETE /api/admin/learning/articles/:articleId/quiz          — hapus kuis dari artikel
+
+router.get('/learning/articles', asAuth(AdminLearningController.listArticles));
+router.post('/learning/articles', asAuth(AdminLearningController.createArticle));
+router.get('/learning/articles/:articleId', asAuth(AdminLearningController.getArticleDetail));
+router.put('/learning/articles/:articleId', asAuth(AdminLearningController.updateArticle));
+router.delete('/learning/articles/:articleId', asAuth(AdminLearningController.deleteArticle));
+router.put('/learning/articles/:articleId/quiz', asAuth(AdminLearningController.upsertQuiz));
+router.delete('/learning/articles/:articleId/quiz', asAuth(AdminLearningController.deleteQuiz));
 
 export default router;

@@ -42,6 +42,7 @@ enum TransactionSource {
   VOUCHER_PURCHASE     // beli voucher
   INFAQ                // sedekah
   ADJUSTMENT           // koreksi admin
+  LEARNING_REWARD      // reward kuis e-learning lulus
 }
 
 enum ParentTransactionSource {
@@ -50,6 +51,22 @@ enum ParentTransactionSource {
   TRANSFER_TO_CHILD  // kirim ke rekening anak
   CHORE_REWARD       // reward chore disetujui (debit dari parent)
   ADJUSTMENT         // koreksi manual
+  LEARNING_REWARD    // reward kuis e-learning (debit dari parent)
+}
+
+enum LearningCategory {
+  MENABUNG          // dasar-dasar menabung
+  BELANJA_BIJAK     // cara belanja yang cerdas
+  INFAQ_SEDEKAH     // berbagi dan bersedekah
+  KEUANGAN_DASAR   // pengelolaan keuangan pribadi
+  INVESTASI         // pengenalan investasi
+  LAINNYA
+}
+
+enum LearningDifficulty {
+  MUDAH
+  SEDANG
+  SULIT
 }
 
 enum ChoreStatus {
@@ -107,11 +124,13 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  parentProfile       ParentProfile?
-  childProfile        ChildProfile?
-  auditLogs           AuditLog[]
-  refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
+  parentProfile           ParentProfile?
+  childProfile            ChildProfile?
+  auditLogs               AuditLog[]
+  refreshTokens           RefreshToken[]
+  passwordResetTokens     PasswordResetToken[]
+  learningModulesCreated  LearningModule[]
+  learningArticlesCreated LearningArticle[]
 
   @@map("users")
 }
@@ -167,6 +186,8 @@ model ChildProfile {
   infaqLogs          InfaqLog[]
   voucherRedemptions VoucherRedemption[]
   parentTransfers    ParentLedger[]  @relation("LedgerRelatedChild")
+  learningProgresses LearningProgress[]
+  xpBalance          ChildXpBalance?
 
   @@map("child_profiles")
 }
@@ -482,4 +503,114 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
+}
+
+// =============================================
+// E-LEARNING
+// =============================================
+
+model LearningModule {
+  id          String             @id @default(uuid())
+  title       String
+  description String?
+  category    LearningCategory
+  thumbnail   String?
+  isPublished Boolean            @default(false) @map("is_published")
+  order       Int                @default(0)
+  createdById String             @map("created_by_id")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  createdBy User              @relation(fields: [createdById], references: [id])
+  articles  LearningArticle[]
+
+  @@map("learning_modules")
+}
+
+model LearningArticle {
+  id             String             @id @default(uuid())
+  moduleId       String?            @map("module_id")
+  title          String
+  content        String
+  imageUrl       String?            @map("image_url")
+  category       LearningCategory
+  difficulty     LearningDifficulty
+  readingTimeMin Int                @default(5) @map("reading_time_min")
+  xpReward       Int                @default(10) @map("xp_reward")
+  isPublished    Boolean            @default(false) @map("is_published")
+  order          Int                @default(0)
+  createdById    String             @map("created_by_id")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  module     LearningModule?    @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  createdBy  User               @relation(fields: [createdById], references: [id])
+  quiz       Quiz?
+  progresses LearningProgress[]
+
+  @@map("learning_articles")
+}
+
+// Satu quiz per artikel. Dihapus otomatis jika artikel dihapus.
+model Quiz {
+  id         String    @id @default(uuid())
+  articleId  String    @unique @map("article_id")
+  xpBonus    Int       @default(20) @map("xp_bonus")
+  coinReward BigInt    @default(0) @map("coin_reward") // dalam sen (IDR × 100)
+  passScore  Int       @default(70) @map("pass_score") // minimum persentase lulus
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  article   LearningArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+
+  @@map("quizzes")
+}
+
+// Opsi jawaban disimpan sebagai JSON: [{text, isCorrect}]
+model QuizQuestion {
+  id          String   @id @default(uuid())
+  quizId      String   @map("quiz_id")
+  question    String
+  options     Json     // QuizOption[]
+  explanation String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_questions")
+}
+
+// Progress per anak per artikel — unique constraint mencegah duplikasi.
+model LearningProgress {
+  id              String    @id @default(uuid())
+  childProfileId  String    @map("child_profile_id")
+  articleId       String    @map("article_id")
+  readCompletedAt DateTime? @map("read_completed_at")
+  quizScore       Int?      @map("quiz_score")       // null = belum ambil kuis
+  quizPassedAt    DateTime? @map("quiz_passed_at")    // null = belum lulus / belum ambil
+  xpEarned        Int       @default(0) @map("xp_earned")
+  rewardPaidAt    DateTime? @map("reward_paid_at")    // null = reward belum dibayar
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  childProfile ChildProfile    @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  article      LearningArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([childProfileId, articleId])
+  @@map("learning_progresses")
+}
+
+// Satu record per anak — di-upsert setiap XP bertambah.
+model ChildXpBalance {
+  id             String   @id @default(uuid())
+  childProfileId String   @unique @map("child_profile_id")
+  totalXp        Int      @default(0) @map("total_xp")
+  level          Int      @default(1)
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  childProfile ChildProfile @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+
+  @@map("child_xp_balances")
 }
