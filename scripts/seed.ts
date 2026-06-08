@@ -11,12 +11,18 @@
  * - Voucher catalog
  */
 
+import crypto from 'crypto';
+
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
 const SALT_ROUNDS = 12;
+
+function generateMockCode(prefix: string): string {
+  return `${prefix}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+}
 
 async function main() {
   console.log('🌱 Memulai seed data demo...\n');
@@ -412,7 +418,7 @@ async function main() {
         stock: 100,
         maxPerChild: 3,
         description: 'Voucher potongan harga Shopee senilai Rp 10.000',
-        mockCode: 'SHOPEE-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        mockCode: generateMockCode('SHOPEE-BYOND'),
         isActive: true,
       },
       {
@@ -425,7 +431,7 @@ async function main() {
         stock: 50,
         maxPerChild: 2,
         description: 'Voucher potongan harga Shopee senilai Rp 25.000',
-        mockCode: 'SHOPEE-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        mockCode: generateMockCode('SHOPEE-BYOND'),
         isActive: true,
       },
       {
@@ -438,7 +444,7 @@ async function main() {
         stock: 200,
         maxPerChild: 5,
         description: '50 Diamond Mobile Legends Bang Bang. Kode dikirim ke akun MLBB kamu.',
-        mockCode: 'MLBB-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        mockCode: generateMockCode('MLBB-BYOND'),
         isActive: true,
       },
       {
@@ -451,7 +457,7 @@ async function main() {
         stock: 100,
         maxPerChild: 3,
         description: '150 Diamond Mobile Legends Bang Bang. Kode dikirim ke akun MLBB kamu.',
-        mockCode: 'MLBB-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        mockCode: generateMockCode('MLBB-BYOND'),
         isActive: true,
       },
       {
@@ -464,7 +470,7 @@ async function main() {
         stock: 200,
         maxPerChild: 5,
         description: '70 Diamond Garena Free Fire. Kode dikirim ke akun FF kamu.',
-        mockCode: 'FF-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        mockCode: generateMockCode('FF-BYOND'),
         isActive: true,
       },
       {
@@ -477,7 +483,7 @@ async function main() {
         stock: 50,
         maxPerChild: 2,
         description: 'Top-up GoPay senilai Rp 20.000',
-        mockCode: 'GOPAY-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        mockCode: generateMockCode('GOPAY-BYOND'),
         isActive: true,
       },
       {
@@ -490,7 +496,7 @@ async function main() {
         stock: 30,
         maxPerChild: 1,
         description: 'Akses penuh Ruangguru selama 1 bulan — belajar lebih asyik!',
-        mockCode: 'RG-BYOND-' + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        mockCode: generateMockCode('RG-BYOND'),
         isActive: true,
       },
     ],
