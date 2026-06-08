@@ -36,8 +36,10 @@ router.get('/parents/:parentId/ledger', asAuth(AdminController.getParentLedger))
 // Manajemen Akun Anak
 // =============================================
 
+// GET   /api/admin/children                  — daftar semua anak (paginated + search)
 // GET   /api/admin/children/:childId         — detail anak + rekening + pockets
 // PATCH /api/admin/children/:childId/status  — aktif / nonaktifkan akun anak
+router.get('/children', asAuth(AdminController.listChildren));
 router.get('/children/:childId', asAuth(AdminController.getChildDetail));
 router.patch('/children/:childId/status', asAuth(AdminController.setChildStatus));
 

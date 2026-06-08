@@ -74,6 +74,12 @@ export const searchParentsSchema = paginationSchema.extend({
   isActive: z.enum(['true', 'false']).optional(),
 });
 
+export const searchChildrenSchema = paginationSchema.extend({
+  search: z.string().optional(),
+  isActive: z.enum(['true', 'false']).optional(),
+  parentId: z.string().uuid().optional(),
+});
+
 export const adjustBalanceSchema = z.object({
   amount: z.number().refine(v => v !== 0, 'Jumlah tidak boleh 0'),
   notes: z.string().min(5, 'Catatan minimal 5 karakter wajib diisi untuk audit'),
@@ -92,7 +98,8 @@ export const auditLogQuerySchema = paginationSchema.extend({
   to: z.string().datetime().optional(),
 });
 
-export type SearchParentsInput = z.infer<typeof searchParentsSchema>;
+export type SearchParentsInput  = z.infer<typeof searchParentsSchema>;
+export type SearchChildrenInput = z.infer<typeof searchChildrenSchema>;
 export type AdjustBalanceInput = z.infer<typeof adjustBalanceSchema>;
 export type SetStatusInput = z.infer<typeof setStatusSchema>;
 export type AuditLogQueryInput = z.infer<typeof auditLogQuerySchema>;

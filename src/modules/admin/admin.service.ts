@@ -2,6 +2,7 @@ import { prisma } from '../../config/database';
 import { AppError, NotFoundError, toRupiah } from '../../types';
 import type {
   SearchParentsInput,
+  SearchChildrenInput,
   AdjustBalanceInput,
   AuditLogQueryInput,
   CreateVoucherInput,
@@ -164,6 +165,61 @@ export async function listParents(input: SearchParentsInput) {
     parents: users
       .filter(u => u.parentProfile)
       .map(u => serializeParent(u.parentProfile!)),
+  };
+}
+
+// =============================================
+// GET /api/admin/children
+// =============================================
+
+export async function listChildren(input: SearchChildrenInput) {
+  const { page, limit, search, isActive, parentId } = input;
+  const skip = (page - 1) * limit;
+
+  const isActiveFilter =
+    isActive === 'true' ? true : isActive === 'false' ? false : undefined;
+
+  const where = {
+    ...(isActiveFilter !== undefined && { isActive: isActiveFilter }),
+    ...(parentId && { familyLinks: { some: { parentProfileId: parentId } } }),
+    ...(search && {
+      OR: [
+        { fullName: { contains: search, mode: 'insensitive' as const } },
+        { childAccountNumber: { contains: search } },
+        { user: { email: { contains: search, mode: 'insensitive' as const } } },
+      ],
+    }),
+  };
+
+  const [total, profiles] = await Promise.all([
+    prisma.childProfile.count({ where }),
+    prisma.childProfile.findMany({
+      where,
+      include: {
+        account: { select: { balance: true } },
+        familyLinks: {
+          include: { parentProfile: { select: { id: true, fullName: true } } },
+          take: 1,
+        },
+        user: { select: { email: true, isActive: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+  ]);
+
+  return {
+    data: profiles.map(p => ({
+      id: p.id,
+      fullName: p.fullName,
+      isActive: p.isActive,
+      childAccountNumber: p.childAccountNumber,
+      balance: toRupiah(p.account?.balance ?? 0n),
+      parent: p.familyLinks[0]?.parentProfile ?? null,
+      email: p.user?.email ?? null,
+    })),
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
 }
 

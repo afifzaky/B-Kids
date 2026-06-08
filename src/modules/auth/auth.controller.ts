@@ -17,6 +17,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   forgotUsernameSchema,
+  forgotChildPasswordSchema,
 } from './auth.validator';
 import * as AuthService from './auth.service';
 import { AuthenticatedRequest } from '../../types';
@@ -424,6 +425,23 @@ export async function forgotUsername(
   try {
     const input = forgotUsernameSchema.parse(req.body);
     const data  = await AuthService.forgotUsername(input);
+    res.status(200).json({ success: true, ...data });
+  } catch (error) { next(error); }
+}
+
+// =============================================
+// POST /api/auth/forgot-child-password [PUBLIC]
+// Kirim link reset password anak ke email parent — anti-enumeration (selalu 200)
+// =============================================
+
+export async function forgotChildPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = forgotChildPasswordSchema.parse(req.body);
+    const data  = await AuthService.forgotChildPassword(input);
     res.status(200).json({ success: true, ...data });
   } catch (error) { next(error); }
 }

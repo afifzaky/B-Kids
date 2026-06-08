@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../types';
 import {
   searchParentsSchema,
+  searchChildrenSchema,
   adjustBalanceSchema,
   setStatusSchema,
   auditLogQuerySchema,
@@ -99,6 +100,17 @@ export async function getParentLedger(
     const { page, limit } = paginationSchema.parse(req.query);
     const data = await AdminService.getParentLedger(req.params.parentId, page, limit);
     res.json({ success: true, ...data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/admin/children
+export async function listChildren(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const input = searchChildrenSchema.parse(req.query);
+    const result = await AdminService.listChildren(input);
+    res.json({ success: true, ...result });
   } catch (err) {
     next(err);
   }

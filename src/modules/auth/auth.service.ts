@@ -28,6 +28,7 @@ import type {
   ForgotPasswordInput,
   ResetPasswordInput,
   ForgotUsernameInput,
+  ForgotChildPasswordInput,
 } from './auth.validator';
 
 // =============================================
@@ -847,6 +848,61 @@ export async function forgotUsername(input: ForgotUsernameInput): Promise<{ mess
 
   EmailService.sendUsernameReminderEmail(parent.email, parent.parentProfile.fullName, children).catch(
     (err: unknown) => console.error('[forgotUsername] Email failed:', err instanceof Error ? err.message : String(err)),
+  );
+
+  return { message: GENERIC_MESSAGE };
+}
+
+// =============================================
+// POST /api/auth/forgot-child-password
+// Kirim link reset password anak ke email parent terkait.
+// Security:
+// • Selalu return pesan sama (anti-enumeration)
+// • Token terikat ke userId anak — tidak bisa dipakai reset password parent
+// =============================================
+
+export async function forgotChildPassword(input: ForgotChildPasswordInput): Promise<{ message: string }> {
+  const GENERIC_MESSAGE = 'Jika username terdaftar, link reset password telah dikirim ke email orang tua.';
+
+  // Cari akun anak berdasarkan username
+  const child = await prisma.childProfile.findFirst({
+    where: { username: input.childUsername, isActive: true },
+    include: {
+      user: true,
+      familyLinks: {
+        include: {
+          parentProfile: {
+            include: { user: { select: { email: true } } },
+          },
+        },
+        take: 1,
+      },
+    },
+  });
+
+  if (!child) return { message: GENERIC_MESSAGE };
+
+  const parentLink = child.familyLinks[0];
+  if (!parentLink?.parentProfile?.user?.email) return { message: GENERIC_MESSAGE };
+
+  const parentEmail    = parentLink.parentProfile.user.email;
+  const parentFullName = parentLink.parentProfile.fullName;
+
+  // Hapus token lama milik anak ini
+  await prisma.passwordResetToken.deleteMany({ where: { userId: child.userId } });
+
+  const rawToken  = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const expiresAt = new Date(Date.now() + env.PASSWORD_RESET_EXPIRES_MS);
+
+  await prisma.passwordResetToken.create({
+    data: { userId: child.userId, tokenHash, expiresAt },
+  });
+
+  const resetUrl = `${env.APP_URL}/auth/child/reset-password?token=${rawToken}`;
+
+  EmailService.sendChildPasswordResetEmail(parentEmail, parentFullName, child.fullName, resetUrl).catch(
+    (err: unknown) => console.error('[forgotChildPassword] Email failed:', err instanceof Error ? err.message : String(err)),
   );
 
   return { message: GENERIC_MESSAGE };

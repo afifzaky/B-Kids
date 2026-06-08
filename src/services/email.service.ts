@@ -207,3 +207,88 @@ export async function sendUsernameReminderEmail(
     }
   }
 }
+
+// =============================================
+// Template: Child Password Reset (dikirim ke email parent)
+// =============================================
+
+function buildChildPasswordResetEmail(
+  parentName: string,
+  childName: string,
+  resetUrl: string,
+): string {
+  const safeParent = escapeHtml(parentName);
+  const safeChild  = escapeHtml(childName);
+  const safeUrl    = escapeHtml(resetUrl);
+
+  return `<!DOCTYPE html>
+<html lang="id">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:40px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+        <tr><td style="background:#e88b00;padding:24px 32px">
+          <h1 style="color:#ffffff;margin:0;font-size:22px">🔑 Byond Kids</h1>
+        </td></tr>
+        <tr><td style="padding:32px">
+          <h2 style="color:#e88b00;margin:0 0 16px">Reset Password Anak</h2>
+          <p style="color:#444;line-height:1.6">Halo <strong>${safeParent}</strong>,</p>
+          <p style="color:#444;line-height:1.6">
+            Kami menerima permintaan untuk mereset password akun anak Anda,
+            <strong>${safeChild}</strong>, di aplikasi Byond Kids.
+          </p>
+          <p style="color:#444;line-height:1.6">
+            Klik tombol di bawah untuk membuat password baru bagi <strong>${safeChild}</strong>.
+          </p>
+          <div style="text-align:center;margin:32px 0">
+            <a href="${safeUrl}"
+               style="background:#e88b00;color:#ffffff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:15px;display:inline-block">
+              Reset Password Anak
+            </a>
+          </div>
+          <p style="color:#777;font-size:13px;line-height:1.6">
+            Link ini berlaku selama <strong>15 menit</strong> dan hanya bisa digunakan sekali.<br>
+            Jika Anda tidak meminta reset password ini, abaikan email ini — akun anak Anda tetap aman.
+          </p>
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+          <p style="color:#aaa;font-size:11px">
+            Jika tombol tidak berfungsi, salin URL ini ke browser:<br>
+            <span style="color:#e88b00;word-break:break-all">${safeUrl}</span>
+          </p>
+        </td></tr>
+        <tr><td style="background:#f4f6f8;padding:16px 32px;text-align:center">
+          <p style="color:#aaa;font-size:11px;margin:0">
+            © ${new Date().getFullYear()} Byond Kids · Email ini dikirim otomatis, jangan dibalas.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendChildPasswordResetEmail(
+  to: string,
+  parentName: string,
+  childName: string,
+  resetUrl: string,
+): Promise<void> {
+  const transporter = await getTransporter();
+  const html = buildChildPasswordResetEmail(parentName, childName, resetUrl);
+
+  const info = await transporter.sendMail({
+    from: env.EMAIL_FROM,
+    to,
+    subject: `Reset Password Anak (${childName}) — Byond Kids`,
+    html,
+  });
+
+  if (env.NODE_ENV !== 'production') {
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      console.info('[Email] Preview URL:', previewUrl);
+    }
+  }
+}

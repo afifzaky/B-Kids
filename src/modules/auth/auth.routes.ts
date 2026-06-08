@@ -75,6 +75,9 @@ router.post('/reset-password', passwordResetLimiter, AuthController.resetPasswor
 // POST /api/auth/forgot-username — kirim username anak ke email parent (rate-limited)
 router.post('/forgot-username', passwordResetLimiter, AuthController.forgotUsername);
 
+// POST /api/auth/forgot-child-password — kirim link reset password anak ke email parent (rate-limited)
+router.post('/forgot-child-password', passwordResetLimiter, AuthController.forgotChildPassword);
+
 // =============================================
 // Protected routes (perlu token)
 // =============================================

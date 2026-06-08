@@ -176,6 +176,14 @@ export const forgotUsernameSchema = z.object({
   parentEmail: z.string().email('Format email tidak valid'),
 });
 
+// =============================================
+// Forgot Child Password (kirim link reset ke email parent)
+// =============================================
+
+export const forgotChildPasswordSchema = z.object({
+  childUsername: z.string().min(1, 'Username anak wajib diisi'),
+});
+
 export type RegisterParentInput         = z.infer<typeof registerParentSchema>;
 export type LoginParentInput            = z.infer<typeof loginParentSchema>;
 export type CreateChildInput            = z.infer<typeof createChildSchema>;
@@ -192,4 +200,5 @@ export type ChangeChildPasswordInput    = z.infer<typeof changeChildPasswordSche
 export type ChangeChildPinInput         = z.infer<typeof changeChildPinSchema>;
 export type ForgotPasswordInput         = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput          = z.infer<typeof resetPasswordSchema>;
+export type ForgotChildPasswordInput    = z.infer<typeof forgotChildPasswordSchema>;
 export type ForgotUsernameInput         = z.infer<typeof forgotUsernameSchema>;
