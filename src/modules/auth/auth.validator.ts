@@ -151,6 +151,31 @@ export const changeChildPinSchema = z.object({
   parentPin: pinSchema,
 });
 
+// =============================================
+// Forgot Password / Reset Password
+// =============================================
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Format email tidak valid'),
+});
+
+export const resetPasswordSchema = z.object({
+  // Token adalah 64-char hex string (32 random bytes)
+  token: z
+    .string()
+    .length(64, 'Token tidak valid')
+    .regex(/^[0-9a-f]+$/, 'Token tidak valid'),
+  newPassword: passwordSchema,
+});
+
+// =============================================
+// Forgot Username (kirim username anak ke email parent)
+// =============================================
+
+export const forgotUsernameSchema = z.object({
+  parentEmail: z.string().email('Format email tidak valid'),
+});
+
 export type RegisterParentInput         = z.infer<typeof registerParentSchema>;
 export type LoginParentInput            = z.infer<typeof loginParentSchema>;
 export type CreateChildInput            = z.infer<typeof createChildSchema>;
@@ -165,3 +190,6 @@ export type ChangePasswordInput         = z.infer<typeof changePasswordSchema>;
 export type ChangePinInput              = z.infer<typeof changePinSchema>;
 export type ChangeChildPasswordInput    = z.infer<typeof changeChildPasswordSchema>;
 export type ChangeChildPinInput         = z.infer<typeof changeChildPinSchema>;
+export type ForgotPasswordInput         = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput          = z.infer<typeof resetPasswordSchema>;
+export type ForgotUsernameInput         = z.infer<typeof forgotUsernameSchema>;

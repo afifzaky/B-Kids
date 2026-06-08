@@ -14,6 +14,9 @@ import {
   changePinSchema,
   changeChildPasswordSchema,
   changeChildPinSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  forgotUsernameSchema,
 } from './auth.validator';
 import * as AuthService from './auth.service';
 import { AuthenticatedRequest } from '../../types';
@@ -371,5 +374,56 @@ export async function changeChildPin(
       input,
     );
     res.json({ success: true, ...data });
+  } catch (error) { next(error); }
+}
+
+// =============================================
+// POST /api/auth/forgot-password [PUBLIC]
+// Kirim link reset password ke email — anti-enumeration (selalu 200)
+// =============================================
+
+export async function forgotPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = forgotPasswordSchema.parse(req.body);
+    const data  = await AuthService.forgotPassword(input);
+    res.status(200).json({ success: true, ...data });
+  } catch (error) { next(error); }
+}
+
+// =============================================
+// POST /api/auth/reset-password [PUBLIC]
+// Terapkan password baru menggunakan token dari email
+// =============================================
+
+export async function resetPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = resetPasswordSchema.parse(req.body);
+    const data  = await AuthService.resetPassword(input);
+    res.status(200).json({ success: true, ...data });
+  } catch (error) { next(error); }
+}
+
+// =============================================
+// POST /api/auth/forgot-username [PUBLIC]
+// Kirim daftar username anak ke email parent — anti-enumeration (selalu 200)
+// =============================================
+
+export async function forgotUsername(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = forgotUsernameSchema.parse(req.body);
+    const data  = await AuthService.forgotUsername(input);
+    res.status(200).json({ success: true, ...data });
   } catch (error) { next(error); }
 }

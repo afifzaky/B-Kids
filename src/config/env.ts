@@ -34,6 +34,19 @@ const envSchema = z.object({
   LOGIN_RATE_LIMIT_MAX: z.string().default('5').transform(Number),
 
   BCRYPT_SALT_ROUNDS: z.string().default('12').transform(Number),
+
+  // Email / SMTP — kosongkan SMTP_HOST di dev untuk pakai Ethereal (preview URL di console)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().default('587').transform(Number),
+  SMTP_SECURE: z.string().default('false').transform(v => v === 'true'),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
+  EMAIL_FROM: z.string().default('Byond Kids <noreply@byondkids.id>'),
+  // URL frontend — digunakan untuk membuat link reset password di email
+  APP_URL: z.string().default('http://localhost:3000'),
+
+  // Durasi reset token — default 15 menit
+  PASSWORD_RESET_EXPIRES_MS: z.string().default('900000').transform(Number),
 });
 
 const parsed = envSchema.safeParse(process.env);

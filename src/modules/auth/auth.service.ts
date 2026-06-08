@@ -11,6 +11,7 @@ import {
   NotFoundError,
   JwtPayload,
 } from '../../types';
+import * as EmailService from '../../services/email.service';
 import type {
   RegisterParentInput,
   LoginParentInput,
@@ -24,6 +25,9 @@ import type {
   ChangePinInput,
   ChangeChildPasswordInput,
   ChangeChildPinInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
+  ForgotUsernameInput,
 } from './auth.validator';
 
 // =============================================
@@ -73,7 +77,9 @@ function generateTokens(payload: Omit<JwtPayload, 'iat' | 'exp'>) {
 }
 
 function generateDummyAccountNumber(): string {
-  return '7' + Math.floor(Math.random() * 9_000_000_000 + 1_000_000_000).toString();
+  // crypto.randomInt is a CSPRNG (Node.js ≥14.10) — do not use Math.random()
+  // which is a non-cryptographic PRNG and predictable.
+  return '7' + crypto.randomInt(1_000_000_000, 10_000_000_000).toString();
 }
 
 // =============================================
@@ -704,4 +710,144 @@ export async function changeChildPinByParent(
   await prisma.childProfile.update({ where: { id: childProfileId }, data: { pinHash: newPinHash } });
 
   return { message: `PIN ${childProfile.fullName} berhasil diubah` };
+}
+
+// =============================================
+// Forgot Password — kirim reset link ke email parent
+//
+// Security:
+// • Selalu return pesan yang sama (anti-enumeration — jangan bocorkan apakah email ada)
+// • Token = crypto.randomBytes(32) → 256-bit entropy
+// • DB hanya simpan SHA-256(token), bukan raw token
+// • Hapus token lama sebelum buat yang baru (satu token aktif per user)
+// • Dibatasi hanya untuk role PARENT
+// =============================================
+
+export async function forgotPassword(input: ForgotPasswordInput): Promise<{ message: string }> {
+  const GENERIC_MESSAGE = 'Jika email terdaftar, link reset password telah dikirim ke inbox kamu.';
+
+  const user = await prisma.user.findFirst({
+    where: { email: input.email.toLowerCase(), role: 'PARENT', isActive: true },
+    include: { parentProfile: true },
+  });
+
+  // Selalu return pesan sama — tidak bocorkan apakah email ada
+  if (!user || !user.parentProfile) return { message: GENERIC_MESSAGE };
+
+  // Hapus semua reset token lama milik user ini (satu token aktif per user)
+  await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+
+  // Buat raw token (256-bit), simpan hash-nya
+  const rawToken  = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashToken(rawToken);
+  const expiresAt = new Date(Date.now() + env.PASSWORD_RESET_EXPIRES_MS);
+
+  await prisma.passwordResetToken.create({
+    data: { userId: user.id, tokenHash, expiresAt },
+  });
+
+  const resetUrl = `${env.APP_URL}/reset-password?token=${rawToken}`;
+
+  // Fire-and-forget — jangan await agar respons tidak terlambat jika SMTP lambat
+  // Error email tidak boleh membocorkan info ke client
+  EmailService.sendPasswordResetEmail(user.email, user.parentProfile.fullName, resetUrl).catch(
+    (err: unknown) => console.error('[forgotPassword] Email failed:', err instanceof Error ? err.message : String(err)),
+  );
+
+  return { message: GENERIC_MESSAGE };
+}
+
+// =============================================
+// Reset Password — terapkan password baru dengan token
+//
+// Security:
+// • Validasi token, expiry, dan usedAt (single-use)
+// • Hash password baru dengan bcrypt
+// • Tandai token sebagai terpakai (usedAt)
+// • Invalidasi SEMUA sesi (hapus semua refresh token user)
+// =============================================
+
+export async function resetPassword(input: ResetPasswordInput): Promise<{ message: string }> {
+  const tokenHash = hashToken(input.token);
+
+  const resetToken = await prisma.passwordResetToken.findUnique({
+    where: { tokenHash },
+    include: { user: true },
+  });
+
+  if (!resetToken) {
+    throw new AuthError('Token tidak valid atau sudah kadaluarsa');
+  }
+
+  if (resetToken.usedAt !== null) {
+    throw new AuthError('Token ini sudah digunakan. Minta reset password baru jika diperlukan.');
+  }
+
+  if (resetToken.expiresAt < new Date()) {
+    await prisma.passwordResetToken.delete({ where: { tokenHash } });
+    throw new AuthError('Token sudah kadaluarsa. Silakan minta reset password baru.');
+  }
+
+  const newPasswordHash = await bcrypt.hash(input.newPassword, env.BCRYPT_SALT_ROUNDS);
+
+  // Semua perubahan dalam satu transaksi
+  await prisma.$transaction([
+    // 1. Update password
+    prisma.user.update({
+      where: { id: resetToken.userId },
+      data: { passwordHash: newPasswordHash, loginAttempts: 0, lockedUntil: null },
+    }),
+    // 2. Tandai token sebagai terpakai
+    prisma.passwordResetToken.update({
+      where: { tokenHash },
+      data: { usedAt: new Date() },
+    }),
+    // 3. Invalidasi semua sesi aktif (force logout dari semua device)
+    prisma.refreshToken.deleteMany({ where: { userId: resetToken.userId } }),
+  ]);
+
+  return { message: 'Password berhasil direset. Silakan login dengan password baru.' };
+}
+
+// =============================================
+// Forgot Username — kirim username anak ke email parent
+//
+// Security:
+// • Selalu return pesan sama (anti-enumeration)
+// • Hanya kirim ke email parent yang terdaftar — bukan arbitrary email
+// =============================================
+
+export async function forgotUsername(input: ForgotUsernameInput): Promise<{ message: string }> {
+  const GENERIC_MESSAGE = 'Jika email terdaftar, informasi username anak telah dikirim ke inbox kamu.';
+
+  const parent = await prisma.user.findFirst({
+    where: { email: input.parentEmail.toLowerCase(), role: 'PARENT', isActive: true },
+    include: {
+      parentProfile: {
+        include: {
+          familyLinks: {
+            include: {
+              childProfile: { select: { fullName: true, username: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!parent?.parentProfile) return { message: GENERIC_MESSAGE };
+
+  const children = parent.parentProfile.familyLinks
+    .map(fl => fl.childProfile)
+    .filter((c): c is { fullName: string; username: string | null } => c !== null)
+    .filter(c => c.username !== null)
+    .map(c => ({ fullName: c.fullName, username: c.username as string }));
+
+  if (children.length === 0) return { message: GENERIC_MESSAGE };
+
+  EmailService.sendUsernameReminderEmail(parent.email, parent.parentProfile.fullName, children).catch(
+    (err: unknown) => console.error('[forgotUsername] Email failed:', err instanceof Error ? err.message : String(err)),
+  );
+
+  return { message: GENERIC_MESSAGE };
 }

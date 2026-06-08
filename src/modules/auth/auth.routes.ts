@@ -22,6 +22,20 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter untuk password reset & forgot-username — lebih ketat (5 req / 15 min)
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: {
+    success: false,
+    message: 'Terlalu banyak permintaan. Coba lagi dalam 15 menit.',
+    code: 'RATE_LIMIT_EXCEEDED',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+});
+
 // Helper untuk casting req ke AuthenticatedRequest di routes yang butuh auth
 function asAuth(
   handler: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>,
@@ -51,6 +65,15 @@ router.post('/refresh', AuthController.refreshToken);
 
 // POST /api/auth/logout — invalidasi sesi (tidak perlu Bearer token)
 router.post('/logout', AuthController.logout);
+
+// POST /api/auth/forgot-password — kirim link reset ke email (rate-limited, anti-enumeration)
+router.post('/forgot-password', passwordResetLimiter, AuthController.forgotPassword);
+
+// POST /api/auth/reset-password — terapkan password baru via token
+router.post('/reset-password', passwordResetLimiter, AuthController.resetPassword);
+
+// POST /api/auth/forgot-username — kirim username anak ke email parent (rate-limited)
+router.post('/forgot-username', passwordResetLimiter, AuthController.forgotUsername);
 
 // =============================================
 // Protected routes (perlu token)
