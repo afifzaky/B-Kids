@@ -77,8 +77,9 @@ export function ChallengesPage() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>("ACTIVE");
   const [submitModal, setSubmitModal] = useState<{ choreId: string; title: string } | null>(null);
   const [submitNotes, setSubmitNotes] = useState("");
+  const [submitMediaUrl, setSubmitMediaUrl] = useState("");
   const [submitFile, setSubmitFile] = useState<File | null>(null);
-  const [submitFilePreview, setSubmitFilePreview] = useState<string | null>(null);
+  const [submitPreview, setSubmitPreview] = useState<string | null>(null);
   const [submitUploadLoading, setSubmitUploadLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -102,19 +103,45 @@ export function ChallengesPage() {
   const closeModal = () => {
     setSubmitModal(null);
     setSubmitNotes("");
+    setSubmitMediaUrl("");
     setSubmitFile(null);
-    setSubmitFilePreview(null);
+    if (submitPreview) URL.revokeObjectURL(submitPreview);
+    setSubmitPreview(null);
     setSubmitError(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
+    if (submitPreview) URL.revokeObjectURL(submitPreview);
+    if (!file) {
+      setSubmitFile(null);
+      setSubmitPreview(null);
+      setSubmitMediaUrl("");
+      return;
+    }
     setSubmitFile(file);
-    setSubmitFilePreview(null);
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setSubmitFilePreview(ev.target?.result as string);
-      reader.readAsDataURL(file);
+    setSubmitPreview(URL.createObjectURL(file));
+    setSubmitMediaUrl("");
+    if (submitError) setSubmitError(null);
+  };
+
+  const uploadFile = async (choreId: string): Promise<string | null> => {
+    if (!submitFile) return null;
+    setSubmitUploadLoading(true);
+    const token = localStorage.getItem("accessToken");
+    const formData = new FormData();
+    formData.append("file", submitFile);
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/chores/${choreId}/upload-evidence`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Upload gagal");
+      return data.url as string;
+    } finally {
+      setSubmitUploadLoading(false);
     }
   };
 
@@ -124,34 +151,16 @@ export function ChallengesPage() {
     setSubmitError(null);
 
     const token = localStorage.getItem("accessToken");
-    let mediaUrl: string | undefined;
-
     try {
-      // Upload file first if selected
-      if (submitFile) {
-        setSubmitUploadLoading(true);
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const result = e.target?.result as string;
-            resolve(result.split(",")[1]); // strip "data:image/...;base64,"
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(submitFile);
-        });
+      let mediaUrl = submitMediaUrl.trim() || undefined;
 
-        const uploadRes = await authFetch(`${API_BASE_URL}/api/chores/${submitModal.choreId}/evidence`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ fileData: base64, mimeType: submitFile.type }),
-        });
-        const uploadData = await uploadRes.json();
-        setSubmitUploadLoading(false);
-        if (!uploadRes.ok) {
-          setSubmitError(uploadData.message ?? "Gagal mengupload foto bukti");
+      if (submitFile) {
+        const uploaded = await uploadFile(submitModal.choreId);
+        if (!uploaded) {
+          setSubmitError("Upload gambar gagal, coba lagi");
           return;
         }
-        mediaUrl = uploadData.data?.mediaUrl;
+        mediaUrl = uploaded;
       }
 
       const body: { notes?: string; mediaUrl?: string } = {};
@@ -178,7 +187,6 @@ export function ChallengesPage() {
       setSubmitError("Gagal terhubung ke server");
     } finally {
       setSubmitLoading(false);
-      setSubmitUploadLoading(false);
     }
   };
 
@@ -447,28 +455,45 @@ export function ChallengesPage() {
                 <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">
                   Foto Bukti <span className="text-gray-400 font-normal">(opsional)</span>
                 </label>
-                <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-[#e0e7e7] rounded-xl cursor-pointer hover:border-bsi-teal-primary/50 hover:bg-[#f8fafa] transition-colors p-4">
-                  {submitFilePreview ? (
-                    <img src={submitFilePreview} alt="Preview" className="max-h-32 rounded-lg object-contain mb-2" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 text-gray-400">
-                      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                {submitPreview ? (
+                  <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={submitPreview}
+                      alt="Preview bukti"
+                      className="w-full h-40 object-cover rounded-xl border border-[#e0e7e7]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        URL.revokeObjectURL(submitPreview);
+                        setSubmitPreview(null);
+                        setSubmitFile(null);
+                      }}
+                      className="absolute top-2 right-2 bg-white/90 hover:bg-white rounded-full p-1 shadow transition-colors"
+                    >
+                      <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      <span className="font-['Poppins',sans-serif] text-xs">Klik untuk pilih foto</span>
-                      <span className="font-['Lato',sans-serif] text-xs text-gray-300">JPG, PNG, WEBP maks. ~7MB</span>
-                    </div>
-                  )}
-                  {submitFile && (
-                    <span className="font-['Lato',sans-serif] text-xs text-bsi-teal-primary mt-1 truncate max-w-full">{submitFile.name}</span>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-2 w-full h-32 border-2 border-dashed border-[#e0e7e7] rounded-xl cursor-pointer hover:border-bsi-teal-primary hover:bg-[#f0f9f9] transition-colors">
+                    <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="font-['Lato',sans-serif] text-gray-400 text-xs text-center">
+                      Klik untuk pilih gambar<br />
+                      <span className="text-[10px]">JPG, PNG, WEBP — maks 5 MB</span>
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
             </div>
 
@@ -487,10 +512,18 @@ export function ChallengesPage() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={submitLoading}
+                disabled={submitLoading || submitUploadLoading}
                 className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-50 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
               >
-                {submitLoading ? (
+                {submitUploadLoading ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Mengupload...
+                  </>
+                ) : submitLoading ? (
                   <>
                     <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

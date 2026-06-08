@@ -111,6 +111,9 @@ export function ChildDashboard() {
   const [dashChores, setDashChores] = useState<ActiveChore[]>([]);
   const [dashPockets, setDashPockets] = useState<Pocket[]>([]);
   const [dashTx, setDashTx] = useState<ChildTransaction[]>([]);
+  const [dashDataLoading, setDashDataLoading] = useState(true);
+  const [moveConfirm, setMoveConfirm] = useState(false);
+  const [infaqConfirm, setInfaqConfirm] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -165,6 +168,7 @@ export function ChildDashboard() {
   };
 
   const fetchDashboardData = async (token: string) => {
+    setDashDataLoading(true);
     try {
       const [dashRes, choresRes, pocketsRes, txRes] = await Promise.all([
         authFetch(`${API_BASE_URL}/api/child/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -188,6 +192,7 @@ export function ChildDashboard() {
       if (pocketsData.success) setDashPockets(pocketsData.data.pockets ?? []);
       if (txData.success) setDashTx((txData.data ?? []).slice(0, 5));
     } catch { /* ignore */ }
+    finally { setDashDataLoading(false); }
   };
 
   const openMoveModal = () => {
@@ -204,6 +209,7 @@ export function ChildDashboard() {
     setShowMoveModal(false);
     setMoveError(null);
     setMoveSuccess(null);
+    setMoveConfirm(false);
   };
 
   const handleMoveMoney = async () => {
@@ -244,6 +250,7 @@ export function ChildDashboard() {
   const closeInfaqModal = () => {
     setShowInfaqModal(false);
     setInfaqError(null);
+    setInfaqConfirm(false);
   };
 
   const handleInfaq = async () => {
@@ -338,7 +345,14 @@ export function ChildDashboard() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {dashChores.length === 0 ? (
+              {dashDataLoading ? (
+                <div className="col-span-2 flex items-center justify-center py-10">
+                  <svg className="animate-spin w-6 h-6 text-bsi-teal-primary" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              ) : dashChores.length === 0 ? (
                 <div className="col-span-2 flex flex-col items-center justify-center py-10 text-center">
                   <div className="text-4xl mb-3">🎯</div>
                   <p className="font-['Poppins',sans-serif] font-bold text-gray-500 text-sm">Belum ada tantangan aktif</p>
@@ -385,7 +399,14 @@ export function ChildDashboard() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {dashPockets.length === 0 ? (
+              {dashDataLoading ? (
+                <div className="col-span-2 flex items-center justify-center py-10">
+                  <svg className="animate-spin w-6 h-6 text-bsi-teal-primary" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              ) : dashPockets.length === 0 ? (
                 <div className="col-span-2 flex flex-col items-center justify-center py-10 text-center">
                   <p className="font-['Lato',sans-serif] text-gray-400 text-sm">Belum ada kantong tabungan.</p>
                   <Link href="/child/pockets" className="mt-2 text-bsi-teal-primary font-['Poppins',sans-serif] font-semibold text-sm hover:underline">Buat kantong pertama →</Link>
@@ -453,7 +474,14 @@ export function ChildDashboard() {
             </div>
 
             <div className="space-y-4">
-              {dashTx.length === 0 ? (
+              {dashDataLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <svg className="animate-spin w-6 h-6 text-bsi-teal-primary" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              ) : dashTx.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="font-['Lato',sans-serif] text-gray-400 text-sm">Belum ada transaksi</p>
                 </div>
@@ -646,63 +674,103 @@ export function ChildDashboard() {
               </div>
             </div>
 
-            {/* Transaction Summary */}
-            {moveSelectedPocket && moveAmountNum > 0 && moveAmountNum <= balance && (
-              <div className="mt-4 bg-[#f8fafa] border border-[#e0e7e7] rounded-2xl p-4 space-y-2">
-                <h4 className="font-['Poppins',sans-serif] font-bold text-black text-sm mb-3">Ringkasan Transaksi</h4>
-                <div className="flex justify-between text-sm">
-                  <span className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.6)]">Dari:</span>
-                  <span className="font-['Poppins',sans-serif] font-bold text-black">Saldo Utama</span>
+            {!moveConfirm ? (
+              <>
+                {moveError && (
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
+                    <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{moveError}</p>
+                  </div>
+                )}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={closeMoveModal}
+                    className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!moveSelectedPocket) { setMoveError("Pilih kantong tujuan"); return; }
+                      if (!moveAmountNum || moveAmountNum <= 0) { setMoveError("Masukkan nominal yang valid"); return; }
+                      if (moveAmountNum > balance) { setMoveError("Nominal melebihi saldo utama"); return; }
+                      setMoveError(null);
+                      setMoveConfirm(true);
+                    }}
+                    className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors"
+                  >
+                    Lanjutkan
+                  </button>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.6)]">Ke:</span>
-                  <span className="font-['Poppins',sans-serif] font-bold text-black">{movePocketData?.emoji} {movePocketData?.name}</span>
+              </>
+            ) : moveSuccess ? (
+              <div className="mt-4">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4">
+                  <p className="font-['Poppins',sans-serif] text-green-700 text-sm">{moveSuccess}</p>
                 </div>
-                <div className="flex justify-between pt-2 border-t border-[#e0e7e7]">
-                  <span className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.6)] text-sm">Jumlah:</span>
-                  <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg">{formatRupiah(moveAmountNum)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.6)]">Sisa Saldo:</span>
-                  <span className="font-['Poppins',sans-serif] font-bold text-black">{formatRupiah(balance - moveAmountNum)}</span>
-                </div>
+                <button
+                  onClick={closeMoveModal}
+                  className="w-full bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors"
+                >
+                  Selesai
+                </button>
               </div>
+            ) : (
+              <>
+                <div className="mt-4 bg-[#f0f9f9] border border-[#c7e8e8] rounded-2xl p-4 space-y-2">
+                  <h4 className="font-['Poppins',sans-serif] font-bold text-bsi-teal-primary text-sm mb-3">Konfirmasi Move Money</h4>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.6)]">Dari</span>
+                    <span className="font-['Poppins',sans-serif] font-bold text-black">Saldo Utama</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.6)]">Ke</span>
+                    <span className="font-['Poppins',sans-serif] font-bold text-black">{movePocketData?.emoji} {movePocketData?.name}</span>
+                  </div>
+                  {moveNotes.trim() && (
+                    <div className="flex justify-between text-sm">
+                      <span className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.6)]">Catatan</span>
+                      <span className="font-['Poppins',sans-serif] font-semibold text-black">{moveNotes}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t border-[#c7e8e8]">
+                    <span className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.6)] text-sm">Jumlah</span>
+                    <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg">{formatRupiah(moveAmountNum)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.6)]">Sisa Saldo Utama</span>
+                    <span className="font-['Poppins',sans-serif] font-bold text-black">{formatRupiah(balance - moveAmountNum)}</span>
+                  </div>
+                </div>
+                {moveError && (
+                  <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
+                    <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{moveError}</p>
+                  </div>
+                )}
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => setMoveConfirm(false)}
+                    className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                  >
+                    Ubah
+                  </button>
+                  <button
+                    onClick={handleMoveMoney}
+                    disabled={moveSubmitLoading}
+                    className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-50 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
+                  >
+                    {moveSubmitLoading ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Memproses...
+                      </>
+                    ) : "Konfirmasi Pindahkan"}
+                  </button>
+                </div>
+              </>
             )}
-
-            {moveError && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
-                <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{moveError}</p>
-              </div>
-            )}
-            {moveSuccess && (
-              <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-3">
-                <p className="font-['Poppins',sans-serif] text-green-700 text-sm">{moveSuccess}</p>
-              </div>
-            )}
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={closeMoveModal}
-                className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleMoveMoney}
-                disabled={moveSubmitLoading || !!moveSuccess || moveAmountNum > balance}
-                className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-50 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
-              >
-                {moveSubmitLoading ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Memproses...
-                  </>
-                ) : moveSuccess ? "Berhasil ✓" : "Pindahkan Uang"}
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -805,35 +873,90 @@ export function ChildDashboard() {
               </div>
             </div>
 
-            {infaqError && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
-                <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{infaqError}</p>
-              </div>
+            {!infaqConfirm ? (
+              <>
+                {infaqError && (
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
+                    <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{infaqError}</p>
+                  </div>
+                )}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={closeInfaqModal}
+                    className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!infaqInstitutionId) { setInfaqError("Pilih lembaga penerima"); return; }
+                      const amount = parseFloat(infaqAmount);
+                      if (!amount || amount <= 0) { setInfaqError("Masukkan nominal yang valid"); return; }
+                      if (amount > balance) { setInfaqError("Nominal melebihi saldo utama"); return; }
+                      setInfaqError(null);
+                      setInfaqConfirm(true);
+                    }}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors"
+                  >
+                    Lanjutkan
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mt-4 bg-green-50 border border-green-200 rounded-2xl p-4 space-y-2">
+                  <h4 className="font-['Poppins',sans-serif] font-bold text-green-700 text-sm mb-3">Konfirmasi Infaq</h4>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-['Lato',sans-serif] text-gray-600">Lembaga Penerima</span>
+                    <span className="font-['Poppins',sans-serif] font-bold text-black">
+                      {infaqInstitutions.find((i) => i.id === infaqInstitutionId)?.name ?? "—"}
+                    </span>
+                  </div>
+                  {infaqNotes.trim() && (
+                    <div className="flex justify-between text-sm">
+                      <span className="font-['Lato',sans-serif] text-gray-600">Pesan</span>
+                      <span className="font-['Poppins',sans-serif] font-semibold text-black">{infaqNotes}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t border-green-200">
+                    <span className="font-['Lato',sans-serif] text-gray-600 text-sm">Jumlah Infaq</span>
+                    <span className="font-['Montserrat',sans-serif] font-bold text-green-600 text-lg">{formatRupiah(parseFloat(infaqAmount))}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-['Lato',sans-serif] text-gray-600">Sisa Saldo Utama</span>
+                    <span className="font-['Poppins',sans-serif] font-bold text-black">{formatRupiah(balance - parseFloat(infaqAmount))}</span>
+                  </div>
+                </div>
+                {infaqError && (
+                  <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
+                    <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{infaqError}</p>
+                  </div>
+                )}
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => setInfaqConfirm(false)}
+                    className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                  >
+                    Ubah
+                  </button>
+                  <button
+                    onClick={handleInfaq}
+                    disabled={infaqLoading}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 disabled:opacity-50 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
+                  >
+                    {infaqLoading ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Memproses...
+                      </>
+                    ) : "Konfirmasi Kirim Infaq"}
+                  </button>
+                </div>
+              </>
             )}
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={closeInfaqModal}
-                className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleInfaq}
-                disabled={infaqLoading}
-                className="flex-1 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 disabled:opacity-50 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
-              >
-                {infaqLoading ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Memproses...
-                  </>
-                ) : "Kirim Infaq"}
-              </button>
-            </div>
           </div>
         </div>
       )}

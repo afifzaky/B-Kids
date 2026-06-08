@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? "";
 
 export function ParentRegister() {
   const router = useRouter();
@@ -29,11 +30,30 @@ export function ParentRegister() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const captchaRef = useRef<HTMLDivElement>(null);
 
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successUserName, setSuccessUserName] = useState("");
   const [countdown, setCountdown] = useState(5);
+
+  useEffect(() => {
+    if (!HCAPTCHA_SITE_KEY) return;
+    const script = document.createElement("script");
+    script.src = "https://js.hcaptcha.com/1/api.js?render=explicit";
+    script.async = true;
+    script.onload = () => {
+      if (captchaRef.current && (window as { hcaptcha?: { render: (el: HTMLElement, opts: object) => void } }).hcaptcha) {
+        (window as { hcaptcha?: { render: (el: HTMLElement, opts: object) => void } }).hcaptcha!.render(captchaRef.current, {
+          sitekey: HCAPTCHA_SITE_KEY,
+          callback: (token: string) => setCaptchaToken(token),
+          "expired-callback": () => setCaptchaToken(""),
+        });
+      }
+    };
+    document.head.appendChild(script);
+  }, []);
 
   useEffect(() => {
     if (!showSuccessModal) return;
@@ -130,21 +150,29 @@ export function ParentRegister() {
     setApiError("");
     if (!validateForm()) return;
 
+    if (HCAPTCHA_SITE_KEY && !captchaToken) {
+      setApiError("Selesaikan verifikasi CAPTCHA terlebih dahulu");
+      return;
+    }
+
     setIsLoading(true);
     try {
+      const body: Record<string, string> = {
+        fullName: formData.fullName,
+        dateOfBirth: new Date(formData.dateOfBirth).toISOString(),
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        savingsPin: formData.savingsPin,
+        nik: formData.nik,
+        bsiAccountNumber: formData.bsiAccountNumber,
+      };
+      if (captchaToken) body.captchaToken = captchaToken;
+
       const response = await fetch(`${API_BASE_URL}/api/auth/register/parent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: formData.fullName,
-          dateOfBirth: new Date(formData.dateOfBirth).toISOString(),
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          savingsPin: formData.savingsPin,
-          nik: formData.nik,
-          bsiAccountNumber: formData.bsiAccountNumber,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -548,6 +576,13 @@ export function ParentRegister() {
                 />
                 {errors.bsiAccountNumber && <p className="mt-1 text-sm text-red-500 font-['Lato',sans-serif]">{errors.bsiAccountNumber}</p>}
               </div>
+
+              {/* hCaptcha Widget */}
+              {HCAPTCHA_SITE_KEY && (
+                <div className="flex justify-center mt-2">
+                  <div ref={captchaRef} />
+                </div>
+              )}
 
               {/* Submit */}
               <button

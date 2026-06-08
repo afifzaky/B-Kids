@@ -137,9 +137,17 @@ export function ChildLogin() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Username Field */}
             <div>
-              <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-2">
-                Username
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">
+                  Username
+                </label>
+                <Link
+                  href="/auth/child/forgot-username"
+                  className="font-['Poppins',sans-serif] text-bsi-orange-primary text-xs font-semibold hover:underline"
+                >
+                  Lupa Username?
+                </Link>
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -159,9 +167,17 @@ export function ChildLogin() {
 
             {/* Password Field */}
             <div>
-              <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-2">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">
+                  Password
+                </label>
+                <Link
+                  href="/auth/child/forgot-password"
+                  className="font-['Poppins',sans-serif] text-bsi-orange-primary text-xs font-semibold hover:underline"
+                >
+                  Lupa Password?
+                </Link>
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

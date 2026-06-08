@@ -1,254 +1,61 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { authFetch } from "../../lib/authFetch";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-
-interface ChildItem {
-  id: string;
-  fullName: string;
-  isActive: boolean;
-  childAccountNumber: string | null;
-  balance: string;
-  parent: { id: string; fullName: string } | null;
-  email: string | null;
-}
-
-interface Meta { page: number; limit: number; total: number; totalPages: number; }
-
-function Pagination({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (p: number) => void }) {
-  if (totalPages <= 1) return null;
-  return (
-    <div className="flex items-center justify-center gap-2 mt-4">
-      <button disabled={page === 1} onClick={() => onPageChange(page - 1)}
-        className="px-3 py-1.5 rounded-lg text-sm font-['Poppins',sans-serif] font-semibold text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-        ← Prev
-      </button>
-      <span className="font-['Lato',sans-serif] text-gray-500 text-sm px-2">{page} / {totalPages}</span>
-      <button disabled={page === totalPages} onClick={() => onPageChange(page + 1)}
-        className="px-3 py-1.5 rounded-lg text-sm font-['Poppins',sans-serif] font-semibold text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-        Next →
-      </button>
-    </div>
-  );
-}
-
-function StatusBadge({ isActive }: { isActive: boolean }) {
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-['Poppins',sans-serif] font-semibold ${isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-      {isActive ? "Aktif" : "Nonaktif"}
-    </span>
-  );
-}
-
 export function AdminChildrenListPage() {
-  const [children, setChildren] = useState<ChildItem[]>([]);
-  const [meta, setMeta] = useState<Meta>({ page: 1, limit: 20, total: 0, totalPages: 1 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
-  const [filterActive, setFilterActive] = useState("");
-  const [page, setPage] = useState(1);
-
-  const [toggleTarget, setToggleTarget] = useState<ChildItem | null>(null);
-  const [toggleLoading, setToggleLoading] = useState(false);
-  const [toggleError, setToggleError] = useState("");
-
-  const fetchChildren = async (p: number, s: string, a: string) => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ page: String(p), limit: "20" });
-      if (s) params.set("search", s);
-      if (a) params.set("isActive", a);
-      const res = await authFetch(`${API_BASE_URL}/api/admin/children?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setChildren(data.data ?? []);
-        setMeta(data.meta);
-        setError("");
-      } else {
-        setError(data.message ?? "Gagal memuat data");
-      }
-    } catch {
-      setError("Gagal terhubung ke server");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchChildren(page, search, filterActive); }, [page]);
-
-  const handleSearch = () => { setPage(1); fetchChildren(1, search, filterActive); };
-
-  const handleToggleStatus = async () => {
-    if (!toggleTarget) return;
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
-    setToggleLoading(true);
-    setToggleError("");
-    try {
-      const newStatus = !toggleTarget.isActive;
-      const res = await authFetch(`${API_BASE_URL}/api/admin/children/${toggleTarget.id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ isActive: newStatus }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setChildren(prev => prev.map(c => c.id === toggleTarget.id ? { ...c, isActive: newStatus } : c));
-        setToggleTarget(null);
-      } else {
-        setToggleError(data.message ?? "Gagal mengubah status");
-      }
-    } catch {
-      setToggleError("Gagal terhubung ke server");
-    } finally {
-      setToggleLoading(false);
-    }
-  };
-
   return (
     <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div>
+        <h1 className="font-['Montserrat',sans-serif] font-bold text-gray-800 text-2xl">Manajemen Anak</h1>
+        <p className="font-['Lato',sans-serif] text-gray-500 text-sm mt-1">Kelola akun anak yang terdaftar</p>
+      </div>
+
+      {/* Pending backend notice */}
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
+        <div className="shrink-0 w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+          <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+        </div>
         <div>
-          <h1 className="font-['Montserrat',sans-serif] font-bold text-gray-800 text-2xl">Manajemen Anak</h1>
-          <p className="font-['Lato',sans-serif] text-gray-500 text-sm mt-1">Kelola akun anak yang terdaftar</p>
+          <p className="font-['Poppins',sans-serif] font-bold text-amber-800 text-sm mb-1">
+            Menunggu Penambahan Endpoint Backend
+          </p>
+          <p className="font-['Lato',sans-serif] text-amber-700 text-sm leading-relaxed">
+            Fitur daftar anak memerlukan endpoint{" "}
+            <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono text-xs">GET /api/admin/children</code>{" "}
+            yang belum tersedia di backend saat ini. Endpoint ini perlu ditambahkan ke{" "}
+            <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono text-xs">admin.routes.ts</code>.
+          </p>
+          <p className="font-['Lato',sans-serif] text-amber-600 text-xs mt-2">
+            Sementara itu, Anda dapat melihat daftar anak melalui halaman{" "}
+            <span className="font-semibold">Detail Parent</span> di menu Manajemen Parent.
+          </p>
         </div>
       </div>
 
-      {/* Filter */}
-      <div className="bg-white rounded-2xl border border-[#e8eeed] shadow-sm p-5">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleSearch()}
-            placeholder="Cari nama, email, atau no. rekening..."
-            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-['Lato',sans-serif] focus:border-bsi-teal-primary focus:outline-none" />
-          <select value={filterActive} onChange={e => setFilterActive(e.target.value)}
-            className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-['Poppins',sans-serif] font-semibold text-gray-600 focus:border-bsi-teal-primary focus:outline-none bg-white">
-            <option value="">Semua Status</option>
-            <option value="true">Aktif</option>
-            <option value="false">Nonaktif</option>
-          </select>
-          <button onClick={handleSearch}
-            className="px-5 py-2.5 bg-bsi-teal-primary text-white text-sm font-['Poppins',sans-serif] font-semibold rounded-xl hover:opacity-90 transition-opacity whitespace-nowrap">
-            Cari
-          </button>
+      {/* Alternative hint */}
+      <div className="bg-white rounded-2xl border border-[#e8eeed] shadow-sm p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <svg className="w-5 h-5 text-bsi-teal-primary" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          <h2 className="font-['Poppins',sans-serif] font-bold text-gray-700 text-sm">
+            Cara alternatif melihat data anak
+          </h2>
         </div>
+        <ol className="list-decimal list-inside space-y-2">
+          {[
+            "Buka menu Manajemen Parent di sidebar kiri.",
+            "Pilih salah satu parent dari daftar.",
+            "Di halaman detail parent, daftar anak beserta status dan saldo akan ditampilkan.",
+            "Klik tombol Detail pada anak untuk melihat informasi lengkap, transaksi, dan batas pengeluaran.",
+          ].map((step, i) => (
+            <li key={i} className="font-['Lato',sans-serif] text-gray-600 text-sm">
+              {step}
+            </li>
+          ))}
+        </ol>
       </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-[#e8eeed] shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-[#f3f4f6]">
-          <span className="font-['Poppins',sans-serif] font-bold text-gray-700 text-sm">{meta.total.toLocaleString("id-ID")} anak</span>
-        </div>
-
-        {loading ? (
-          <div className="py-16 text-center">
-            <svg className="animate-spin w-6 h-6 text-bsi-teal-primary mx-auto" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-          </div>
-        ) : error ? (
-          <div className="py-10 text-center"><p className="font-['Lato',sans-serif] text-red-500 text-sm">{error}</p></div>
-        ) : children.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="text-4xl mb-3">👶</div>
-            <p className="font-['Lato',sans-serif] text-gray-400 text-sm">Tidak ada anak ditemukan</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#f9fafa] border-b border-[#f3f4f6]">
-                  {["Nama", "Email", "No. Rekening", "Saldo", "Orang Tua", "Status", "Aksi"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left font-['Poppins',sans-serif] font-semibold text-gray-500 text-xs">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#f3f4f6]">
-                {children.map(child => (
-                  <tr key={child.id} className="hover:bg-[#f9fafa] transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-['Poppins',sans-serif] font-semibold text-gray-800 text-sm">{child.fullName}</p>
-                    </td>
-                    <td className="px-4 py-3 font-['Lato',sans-serif] text-gray-600 text-sm">{child.email ?? "-"}</td>
-                    <td className="px-4 py-3 font-['Lato',sans-serif] text-gray-600 text-sm font-mono">{child.childAccountNumber ?? "-"}</td>
-                    <td className="px-4 py-3 font-['Poppins',sans-serif] font-semibold text-bsi-teal-primary text-sm">{child.balance}</td>
-                    <td className="px-4 py-3 font-['Lato',sans-serif] text-gray-600 text-sm">
-                      {child.parent ? (
-                        <Link href={`/admin/parents/${child.parent.id}`}
-                          className="text-bsi-teal-primary hover:underline font-semibold">
-                          {child.parent.fullName}
-                        </Link>
-                      ) : "-"}
-                    </td>
-                    <td className="px-4 py-3"><StatusBadge isActive={child.isActive} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Link href={`/admin/children/${child.id}`}
-                          className="px-3 py-1.5 bg-[rgba(0,124,128,0.08)] text-bsi-teal-primary text-xs font-['Poppins',sans-serif] font-semibold rounded-lg hover:bg-[rgba(0,124,128,0.15)] transition-colors whitespace-nowrap">
-                          Detail
-                        </Link>
-                        <button onClick={() => { setToggleTarget(child); setToggleError(""); }}
-                          className={`px-3 py-1.5 text-xs font-['Poppins',sans-serif] font-semibold rounded-lg transition-colors whitespace-nowrap ${
-                            child.isActive
-                              ? "bg-red-50 text-red-600 hover:bg-red-100"
-                              : "bg-green-50 text-green-700 hover:bg-green-100"
-                          }`}>
-                          {child.isActive ? "Nonaktifkan" : "Aktifkan"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {!loading && !error && (
-          <div className="px-5 py-3 border-t border-[#f3f4f6]">
-            <Pagination page={page} totalPages={meta.totalPages} onPageChange={p => setPage(p)} />
-          </div>
-        )}
-      </div>
-
-      {/* Toggle Status Modal */}
-      {toggleTarget && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <h3 className="font-['Montserrat',sans-serif] font-bold text-gray-800 text-lg mb-1">
-              {toggleTarget.isActive ? "Nonaktifkan" : "Aktifkan"} Akun
-            </h3>
-            <p className="font-['Lato',sans-serif] text-gray-500 text-sm mb-5">
-              {toggleTarget.isActive
-                ? `Akun ${toggleTarget.fullName} akan dinonaktifkan. Anak tidak dapat login.`
-                : `Akun ${toggleTarget.fullName} akan diaktifkan kembali.`}
-            </p>
-            {toggleError && <p className="text-red-500 text-sm font-['Lato',sans-serif] mb-3">{toggleError}</p>}
-            <div className="flex gap-3">
-              <button onClick={() => setToggleTarget(null)} disabled={toggleLoading}
-                className="flex-1 py-2.5 border border-gray-200 text-gray-600 text-sm font-['Poppins',sans-serif] font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50">
-                Batal
-              </button>
-              <button onClick={handleToggleStatus} disabled={toggleLoading}
-                className={`flex-1 py-2.5 text-white text-sm font-['Poppins',sans-serif] font-semibold rounded-xl transition-opacity disabled:opacity-60 ${
-                  toggleTarget.isActive ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"
-                }`}>
-                {toggleLoading ? "Memproses..." : "Konfirmasi"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

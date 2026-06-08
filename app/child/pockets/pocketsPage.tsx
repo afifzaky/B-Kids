@@ -76,6 +76,7 @@ export function PocketsPage() {
   const [topupLoading, setTopupLoading] = useState(false);
   const [topupError, setTopupError] = useState<string | null>(null);
   const [topupSuccess, setTopupSuccess] = useState<string | null>(null);
+  const [topupConfirm, setTopupConfirm] = useState(false);
 
   // Edit pocket modal
   const [editPocket, setEditPocket] = useState<Pocket | null>(null);
@@ -658,61 +659,115 @@ export function PocketsPage() {
               </div>
             )}
 
-            <div>
-              <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">
-                Nominal
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-['Poppins',sans-serif] text-gray-400 text-sm">Rp</span>
-                <input
-                  type="number"
-                  value={topupAmount}
-                  onChange={(e) => setTopupAmount(e.target.value)}
-                  placeholder="0"
-                  min="0"
-                  className="w-full border border-[#e0e7e7] rounded-xl pl-12 pr-4 py-3 font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary text-lg"
-                />
-              </div>
-            </div>
-
-            {topupError && (
-              <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
-                <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{topupError}</p>
-              </div>
-            )}
-            {topupSuccess && (
-              <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-3">
-                <p className="font-['Poppins',sans-serif] text-green-700 text-sm">{topupSuccess}</p>
-              </div>
-            )}
-
-            <div className="flex gap-3 mt-5">
-              <button
-                onClick={() => setTopupPocket(null)}
-                className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleTopup}
-                disabled={topupLoading || !!topupSuccess}
-                className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-50 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
-              >
-                {topupLoading ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Mengisi...
-                  </>
-                ) : topupSuccess ? (
-                  "Berhasil ✓"
-                ) : (
-                  "Isi Sekarang"
+            {!topupConfirm ? (
+              <>
+                <div>
+                  <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">
+                    Nominal
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-['Poppins',sans-serif] text-gray-400 text-sm">Rp</span>
+                    <input
+                      type="number"
+                      value={topupAmount}
+                      onChange={(e) => { setTopupAmount(e.target.value); setTopupError(null); }}
+                      placeholder="0"
+                      min="0"
+                      className="w-full border border-[#e0e7e7] rounded-xl pl-12 pr-4 py-3 font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary text-lg"
+                    />
+                  </div>
+                </div>
+                {topupError && (
+                  <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
+                    <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{topupError}</p>
+                  </div>
                 )}
-              </button>
-            </div>
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => { setTopupPocket(null); setTopupConfirm(false); }}
+                    className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => {
+                      const amount = parseFloat(topupAmount);
+                      if (!amount || amount <= 0) { setTopupError("Masukkan nominal yang valid"); return; }
+                      if (data && amount > data.account.balance) { setTopupError("Nominal melebihi saldo utama"); return; }
+                      setTopupError(null);
+                      setTopupConfirm(true);
+                    }}
+                    className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors"
+                  >
+                    Lanjutkan
+                  </button>
+                </div>
+              </>
+            ) : topupSuccess ? (
+              <div className="mt-3">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4">
+                  <p className="font-['Poppins',sans-serif] text-green-700 text-sm">{topupSuccess}</p>
+                </div>
+                <button
+                  onClick={() => { setTopupPocket(null); setTopupConfirm(false); setTopupSuccess(null); }}
+                  className="w-full bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors"
+                >
+                  Selesai
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="bg-[#f0f9f9] border border-[#c7e8e8] rounded-2xl p-4 mt-2 space-y-3">
+                  <h4 className="font-['Poppins',sans-serif] font-bold text-sm text-bsi-teal-primary">Konfirmasi Isi Kantong</h4>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-['Lato',sans-serif] text-gray-500">Kantong Tujuan</span>
+                    <span className="font-['Poppins',sans-serif] font-bold text-black">{topupPocket?.emoji} {topupPocket?.name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-['Lato',sans-serif] text-gray-500">Saldo Kantong Saat Ini</span>
+                    <span className="font-['Poppins',sans-serif] font-semibold text-black">{formatRupiah(topupPocket?.balance ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-[#c7e8e8]">
+                    <span className="font-['Lato',sans-serif] text-gray-500">Jumlah Isi</span>
+                    <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg">{formatRupiah(parseFloat(topupAmount))}</span>
+                  </div>
+                  {data && (
+                    <div className="flex justify-between text-sm">
+                      <span className="font-['Lato',sans-serif] text-gray-500">Sisa Saldo Utama</span>
+                      <span className="font-['Poppins',sans-serif] font-bold text-black">{formatRupiah(data.account.balance - parseFloat(topupAmount))}</span>
+                    </div>
+                  )}
+                </div>
+                {topupError && (
+                  <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
+                    <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{topupError}</p>
+                  </div>
+                )}
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => setTopupConfirm(false)}
+                    className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                  >
+                    Ubah
+                  </button>
+                  <button
+                    onClick={handleTopup}
+                    disabled={topupLoading}
+                    className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-50 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
+                  >
+                    {topupLoading ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Mengisi...
+                      </>
+                    ) : "Konfirmasi Isi Kantong"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

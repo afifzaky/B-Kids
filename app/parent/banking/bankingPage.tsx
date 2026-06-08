@@ -84,6 +84,7 @@ export function BankingPage() {
   const [topUpLoading, setTopUpLoading] = useState(false);
   const [topUpError, setTopUpError] = useState<string | null>(null);
   const [topUpSuccess, setTopUpSuccess] = useState<string | null>(null);
+  const [topUpConfirm, setTopUpConfirm] = useState(false);
 
   const fetchAccount = async () => {
     const token = localStorage.getItem("accessToken");
@@ -135,6 +136,7 @@ export function BankingPage() {
     setTopUpNotes("");
     setTopUpError(null);
     setTopUpSuccess(null);
+    setTopUpConfirm(false);
     setShowTopUp(true);
   };
 
@@ -401,7 +403,7 @@ export function BankingPage() {
                   Tutup
                 </button>
               </div>
-            ) : (
+            ) : !topUpConfirm ? (
               <div className="space-y-4">
                 <div>
                   <p className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-2">Nominal Cepat</p>
@@ -410,7 +412,7 @@ export function BankingPage() {
                       <button
                         key={amt}
                         type="button"
-                        onClick={() => setTopUpAmount(String(amt))}
+                        onClick={() => { setTopUpAmount(String(amt)); setTopUpError(null); }}
                         className={`px-4 py-2 rounded-xl text-sm font-['Poppins',sans-serif] font-bold transition-colors ${
                           topUpAmount === String(amt)
                             ? "bg-bsi-teal-primary text-white"
@@ -469,6 +471,63 @@ export function BankingPage() {
                     Batal
                   </button>
                   <button
+                    onClick={() => {
+                      const amount = parseFloat(topUpAmount);
+                      if (!amount || amount <= 0) { setTopUpError("Masukkan nominal yang valid"); return; }
+                      if (amount > 100_000_000) { setTopUpError("Maksimal top up Rp 100.000.000 per transaksi"); return; }
+                      setTopUpError(null);
+                      setTopUpConfirm(true);
+                    }}
+                    className="flex-1 bg-bsi-orange-primary hover:bg-[#d47a00] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-all"
+                  >
+                    Lanjutkan
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-[#f0f9f9] border border-[#c7e8e8] rounded-2xl p-4 space-y-3">
+                  <h4 className="font-['Poppins',sans-serif] font-bold text-sm text-bsi-teal-primary">Konfirmasi Top Up</h4>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-['Lato',sans-serif] text-gray-500">Rekening</span>
+                    <span className="font-['Poppins',sans-serif] font-bold text-black">{account?.bsiAccountNumber ?? "—"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-['Lato',sans-serif] text-gray-500">Saldo Saat Ini</span>
+                    <span className="font-['Poppins',sans-serif] font-semibold text-black">{account ? formatRupiah(account.balance) : "—"}</span>
+                  </div>
+                  {topUpNotes && (
+                    <div className="flex justify-between text-sm">
+                      <span className="font-['Lato',sans-serif] text-gray-500">Keterangan</span>
+                      <span className="font-['Poppins',sans-serif] font-semibold text-black">{topUpNotes}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t border-[#c7e8e8]">
+                    <span className="font-['Lato',sans-serif] text-gray-500">Jumlah Top Up</span>
+                    <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg">{formatRupiah(parseFloat(topUpAmount))}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-['Lato',sans-serif] text-gray-500">Saldo Setelah</span>
+                    <span className="font-['Poppins',sans-serif] font-bold text-black">
+                      {account ? formatRupiah(account.balance + parseFloat(topUpAmount)) : "—"}
+                    </span>
+                  </div>
+                </div>
+
+                {topUpError && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                    <p className="font-['Poppins',sans-serif] text-red-600 text-sm">{topUpError}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setTopUpConfirm(false)}
+                    className="flex-1 bg-white border border-[#e0e7e7] py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                  >
+                    Ubah
+                  </button>
+                  <button
                     onClick={handleTopUp}
                     disabled={topUpLoading}
                     className="flex-1 bg-bsi-orange-primary hover:bg-[#d47a00] disabled:opacity-50 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-all flex items-center justify-center gap-2"
@@ -481,7 +540,7 @@ export function BankingPage() {
                         </svg>
                         Memproses...
                       </>
-                    ) : "Top Up Sekarang"}
+                    ) : "Konfirmasi Top Up"}
                   </button>
                 </div>
               </div>

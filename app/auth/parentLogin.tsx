@@ -195,6 +195,16 @@ export function ParentLogin() {
               </div>
             </div>
 
+            {/* Forgot Password */}
+            <div className="flex justify-end -mt-2">
+              <Link
+                href="/auth/parent/forgot-password"
+                className="font-['Poppins',sans-serif] text-bsi-teal-primary text-xs font-semibold hover:underline"
+              >
+                Lupa Password?
+              </Link>
+            </div>
+
             {/* Savings PIN Field */}
             <div>
               <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1">
