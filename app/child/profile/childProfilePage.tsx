@@ -25,12 +25,34 @@ interface ChildProfile {
   parent: { id: string; fullName: string } | null;
 }
 
+interface AccountLimit {
+  id: string;
+  period: string;
+  limitAmount: number;
+  voucherType: string | null;
+  excludeInfaq: boolean;
+}
+
+interface ChildAccount {
+  accountNumber: string | null;
+  balance: number;
+  spendingLimits: AccountLimit[];
+}
+
+const PERIOD_LABELS: Record<string, string> = { DAILY: "Harian", WEEKLY: "Mingguan", MONTHLY: "Bulanan" };
+const VOUCHER_LABELS: Record<string, string> = { DISCOUNT: "Diskon", GAME_TOPUP: "Game Top-up", E_WALLET: "E-Wallet", EDUCATION: "Edukasi" };
+
+function formatRupiah(amount: number): string {
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount);
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 }
 
 export function ChildProfilePage() {
   const [profile, setProfile] = useState<ChildProfile | null>(null);
+  const [account, setAccount] = useState<ChildAccount | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -45,17 +67,19 @@ export function ChildProfilePage() {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
     setLoading(true);
-    authFetch(`${API_BASE_URL}/api/child/profile`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success) {
-          setProfile(d.data);
-          setSelectedAvatar(d.data.avatar ?? "🐱");
+    Promise.all([
+      authFetch(`${API_BASE_URL}/api/child/profile`, { headers: { Authorization: `Bearer ${token}` } }),
+      authFetch(`${API_BASE_URL}/api/child/account`, { headers: { Authorization: `Bearer ${token}` } }),
+    ])
+      .then(([profileRes, accountRes]) => Promise.all([profileRes.json(), accountRes.json()]))
+      .then(([profileData, accountData]) => {
+        if (profileData.success) {
+          setProfile(profileData.data);
+          setSelectedAvatar(profileData.data.avatar ?? "🐱");
         } else {
-          setError(d.message ?? "Gagal memuat profil");
+          setError(profileData.message ?? "Gagal memuat profil");
         }
+        if (accountData.success) setAccount(accountData.data);
       })
       .catch(() => setError("Gagal terhubung ke server"))
       .finally(() => setLoading(false));
@@ -187,6 +211,49 @@ export function ChildProfilePage() {
           <InfoRow label="Bergabung Sejak" value={formatDate(profile.createdAt)} />
         </div>
       </div>
+
+      {/* Account & Spending Limits Card */}
+      {account && (
+        <div className="mt-5 bg-white rounded-2xl border border-[#e0e7e7] shadow-sm p-6 sm:p-8 space-y-5">
+          <h2 className="font-['Montserrat',sans-serif] font-bold text-gray-800 text-lg">Rekening & Batas Pengeluaran</h2>
+
+          <div className="bg-gradient-to-br from-bsi-teal-primary to-bsi-teal-secondary rounded-2xl p-5 text-white">
+            <p className="font-['Poppins',sans-serif] text-white/70 text-xs uppercase tracking-widest mb-1">Saldo Utama</p>
+            <p className="font-['Montserrat',sans-serif] font-bold text-3xl">{formatRupiah(account.balance)}</p>
+          </div>
+
+          {account.spendingLimits.length > 0 ? (
+            <div>
+              <p className="font-['Poppins',sans-serif] font-semibold text-gray-500 text-xs uppercase tracking-wide mb-3">
+                Batas Pengeluaran Aktif
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {account.spendingLimits.map((limit) => (
+                  <div
+                    key={limit.id}
+                    className="bg-[#f8fafa] rounded-xl border border-[#e0e7e7] p-3 flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">
+                        {limit.voucherType ? VOUCHER_LABELS[limit.voucherType] ?? limit.voucherType : "Umum"}
+                      </p>
+                      <p className="font-['Lato',sans-serif] text-gray-400 text-xs">
+                        {PERIOD_LABELS[limit.period] ?? limit.period}
+                        {limit.excludeInfaq && !limit.voucherType ? " · Infaq dikecualikan" : ""}
+                      </p>
+                    </div>
+                    <p className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-sm">
+                      {formatRupiah(limit.limitAmount)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="font-['Lato',sans-serif] text-gray-400 text-sm">Belum ada batas pengeluaran yang ditetapkan orang tua.</p>
+          )}
+        </div>
+      )}
 
       {/* Security Note Card */}
       <div className="mt-5 bg-[#f8fafa] rounded-2xl border border-[#e0e7e7] p-5 flex items-start gap-4">

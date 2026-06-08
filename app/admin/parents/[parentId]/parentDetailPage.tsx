@@ -291,9 +291,15 @@ export function ParentDetailPage() {
                     <p className="font-['Poppins',sans-serif] font-bold text-bsi-teal-primary text-sm">
                       {child.account?.balance ?? "—"}
                     </p>
-                    <p className="font-['Lato',sans-serif] text-gray-400 text-xs">
+                    <p className="font-['Lato',sans-serif] text-gray-400 text-xs mb-1">
                       {child.account?.pockets.length ?? 0} kantong
                     </p>
+                    <Link
+                      href={`/admin/children/${child.id}`}
+                      className="text-bsi-teal-primary font-['Poppins',sans-serif] font-semibold text-xs hover:underline"
+                    >
+                      Lihat Detail →
+                    </Link>
                   </div>
                 </div>
                 {(child.account?.pockets.length ?? 0) > 0 && (

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? "";
 
 export function ChildLogin() {
   const router = useRouter();
@@ -18,6 +19,25 @@ export function ChildLogin() {
   const [showPin, setShowPin] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const captchaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!HCAPTCHA_SITE_KEY) return;
+    const script = document.createElement("script");
+    script.src = "https://js.hcaptcha.com/1/api.js?render=explicit";
+    script.async = true;
+    script.onload = () => {
+      if (captchaRef.current && (window as { hcaptcha?: { render: (el: HTMLElement, opts: object) => void } }).hcaptcha) {
+        (window as { hcaptcha?: { render: (el: HTMLElement, opts: object) => void } }).hcaptcha!.render(captchaRef.current, {
+          sitekey: HCAPTCHA_SITE_KEY,
+          callback: (token: string) => setCaptchaToken(token),
+          "expired-callback": () => setCaptchaToken(""),
+        });
+      }
+    };
+    document.head.appendChild(script);
+  }, []);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -33,12 +53,19 @@ export function ChildLogin() {
       return;
     }
 
+    if (HCAPTCHA_SITE_KEY && !captchaToken) {
+      setError("Selesaikan verifikasi CAPTCHA terlebih dahulu");
+      return;
+    }
+
     setIsLoading(true);
     try {
+      const body: Record<string, string> = { ...formData };
+      if (captchaToken) body.captchaToken = captchaToken;
       const res = await fetch(`${API_BASE_URL}/api/auth/login/child`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -210,6 +237,13 @@ export function ChildLogin() {
                 </button>
               </div>
             </div>
+
+            {/* hCaptcha Widget */}
+            {HCAPTCHA_SITE_KEY && (
+              <div className="flex justify-center">
+                <div ref={captchaRef} />
+              </div>
+            )}
 
             {/* Login Button */}
             <button

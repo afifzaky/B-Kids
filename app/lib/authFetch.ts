@@ -1,11 +1,64 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
+// Single-flight: jika ada beberapa request yang 401 bersamaan,
+// hanya satu refresh yang dikirim ke backend (backend pakai token rotation).
+let isRefreshing = false;
+let refreshQueue: Array<(success: boolean) => void> = [];
+
+function notifyQueue(success: boolean): void {
+  refreshQueue.forEach((resolve) => resolve(success));
+  refreshQueue = [];
+}
+
+async function attemptRefresh(): Promise<boolean> {
+  if (isRefreshing) {
+    return new Promise<boolean>((resolve) => refreshQueue.push(resolve));
+  }
+
+  isRefreshing = true;
+  try {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) {
+      notifyQueue(false);
+      return false;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!res.ok) {
+      notifyQueue(false);
+      return false;
+    }
+
+    const data = await res.json();
+    if (data.success && data.data?.accessToken && data.data?.refreshToken) {
+      localStorage.setItem("accessToken", data.data.accessToken);
+      localStorage.setItem("refreshToken", data.data.refreshToken);
+      notifyQueue(true);
+      return true;
+    }
+
+    notifyQueue(false);
+    return false;
+  } catch {
+    notifyQueue(false);
+    return false;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
 export function redirectToLogin(): void {
   if (typeof window === "undefined") return;
-  if (document.getElementById("__auth-expired-toast")) return; // prevent double trigger
+  if (document.getElementById("__auth-expired-toast")) return;
 
   const role = localStorage.getItem("userRole");
   localStorage.clear();
 
-  // Build toast element
   const toast = document.createElement("div");
   toast.id = "__auth-expired-toast";
   toast.style.cssText = [
@@ -48,6 +101,24 @@ export function redirectToLogin(): void {
 
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const res = await fetch(url, options);
-  if (res.status === 401) redirectToLogin();
+
+  if (res.status !== 401) return res;
+
+  // Coba refresh token sebelum menyerah
+  const refreshed = await attemptRefresh();
+  if (refreshed) {
+    const newToken = localStorage.getItem("accessToken");
+    const retryOptions: RequestInit = {
+      ...options,
+      headers: {
+        ...(options.headers as Record<string, string> ?? {}),
+        Authorization: `Bearer ${newToken}`,
+      },
+    };
+    const retryRes = await fetch(url, retryOptions);
+    if (retryRes.status !== 401) return retryRes;
+  }
+
+  redirectToLogin();
   return res;
 }

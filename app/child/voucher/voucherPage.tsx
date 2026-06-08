@@ -19,8 +19,7 @@ interface Redemption {
   id: string;
   voucher: { name: string; provider: string; category: string };
   amount: number;
-  mockCode: string | null;
-  sourcePocketId: string;
+  redemptionCode: string | null;
   redeemedAt: string;
 }
 
@@ -91,13 +90,12 @@ export function VoucherPage() {
   const [detailVoucher, setDetailVoucher] = useState<Voucher | null>(null);
   // Buy modal
   const [buyVoucher, setBuyVoucher] = useState<Voucher | null>(null);
-  const [selectedPocketId, setSelectedPocketId] = useState("");
   const [buyLoading, setBuyLoading] = useState(false);
   const [buyError, setBuyError] = useState<string | null>(null);
   // Success modal
   const [successRedemption, setSuccessRedemption] = useState<{
     voucher: Voucher;
-    mockCode: string | null;
+    redemptionCode: string | null;
   } | null>(null);
 
   const authHeader = () => ({
@@ -159,26 +157,24 @@ export function VoucherPage() {
     setDetailVoucher(null);
     setBuyVoucher(voucher);
     setBuyError(null);
-    const affordable = pockets.find((p) => p.balance >= voucher.price);
-    setSelectedPocketId(affordable?.id ?? pockets[0]?.id ?? "");
   };
 
   const handleConfirmBuy = async () => {
-    if (!buyVoucher || !selectedPocketId) return;
+    if (!buyVoucher) return;
     setBuyLoading(true);
     setBuyError(null);
     try {
       const res = await authFetch(`${API_BASE_URL}/api/vouchers/buy`, {
         method: "POST",
         headers: authHeader(),
-        body: JSON.stringify({ voucherId: buyVoucher.id, sourcePocketId: selectedPocketId }),
+        body: JSON.stringify({ voucherId: buyVoucher.id }),
       });
       const data = await res.json();
       if (!res.ok) {
         setBuyError(data.message ?? "Gagal membeli voucher");
         return;
       }
-      setSuccessRedemption({ voucher: buyVoucher, mockCode: data.data?.mockCode ?? null });
+      setSuccessRedemption({ voucher: buyVoucher, redemptionCode: data.data?.redemptionCode ?? null });
       setBuyVoucher(null);
       fetchAll();
     } catch {
@@ -187,8 +183,6 @@ export function VoucherPage() {
       setBuyLoading(false);
     }
   };
-
-  const selectedPocket = pockets.find((p) => p.id === selectedPocketId);
 
   if (isLoading) {
     return (
@@ -230,7 +224,7 @@ export function VoucherPage() {
           <div className="relative flex items-center justify-between">
             <div>
               <p className="font-['Poppins',sans-serif] text-white/80 text-xs uppercase tracking-wide mb-2">
-                Total Saldo Kantong
+                Saldo Utama
               </p>
               <div className="flex items-center gap-3">
                 <svg className="w-7 h-7 text-white/80" fill="currentColor" viewBox="0 0 20 20">
@@ -238,11 +232,11 @@ export function VoucherPage() {
                   <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
                 </svg>
                 <p className="font-['Montserrat',sans-serif] font-bold text-3xl sm:text-4xl">
-                  {formatRupiah(totalPocketBalance)}
+                  {formatRupiah(accountBalance)}
                 </p>
               </div>
               <p className="font-['Lato',sans-serif] text-white/70 text-xs mt-2">
-                Saldo Utama: {formatRupiah(accountBalance)}
+                Total Kantong: {formatRupiah(totalPocketBalance)}
               </p>
             </div>
             <button
@@ -322,7 +316,7 @@ export function VoucherPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredVouchers.map((voucher) => {
                   const icon = getVoucherIcon(voucher.category, voucher.imageUrl);
-                  const canAfford = pockets.some((p) => p.balance >= voucher.price);
+                  const canAfford = accountBalance >= voucher.price;
                   const isUrl = icon.startsWith("http");
                   return (
                     <div
@@ -361,14 +355,14 @@ export function VoucherPage() {
                           </button>
                           <button
                             onClick={() => handleBuyClick(voucher)}
-                            disabled={!canAfford || pockets.length === 0}
+                            disabled={!canAfford}
                             className={`flex-1 rounded-xl py-2.5 font-['Poppins',sans-serif] font-bold text-sm transition-colors ${
-                              canAfford && pockets.length > 0
+                              canAfford
                                 ? "bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark text-white"
                                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
                             }`}
                           >
-                            {pockets.length === 0 ? "Buat Kantong" : canAfford ? "Beli" : "Saldo Kurang"}
+                            {canAfford ? "Beli" : "Saldo Kurang"}
                           </button>
                         </div>
                       </div>
@@ -428,13 +422,13 @@ export function VoucherPage() {
                             {formatRupiah(r.amount)}
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                            {r.mockCode && (
+                            {r.redemptionCode && (
                               <div className="bg-[#f0f9f9] rounded-xl p-3">
                                 <p className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.5)] text-xs mb-0.5">
                                   Kode Voucher
                                 </p>
                                 <p className="font-['Poppins',sans-serif] font-bold text-bsi-teal-primary tracking-widest">
-                                  {r.mockCode}
+                                  {r.redemptionCode}
                                 </p>
                               </div>
                             )}
@@ -518,9 +512,9 @@ export function VoucherPage() {
                 </button>
                 <button
                   onClick={() => handleBuyClick(detailVoucher)}
-                  disabled={!pockets.some((p) => p.balance >= detailVoucher.price)}
+                  disabled={accountBalance < detailVoucher.price}
                   className={`flex-1 py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-sm transition-colors ${
-                    pockets.some((p) => p.balance >= detailVoucher.price)
+                    accountBalance >= detailVoucher.price
                       ? "bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark text-white"
                       : "bg-gray-200 text-gray-400 cursor-not-allowed"
                   }`}
@@ -567,31 +561,24 @@ export function VoucherPage() {
               </div>
             </div>
 
-            {/* Pocket selector */}
+            {/* Sumber dana — saldo utama */}
             <div className="mb-5">
               <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm block mb-2">
-                Bayar dari kantong
+                Sumber Dana
               </label>
-              <select
-                value={selectedPocketId}
-                onChange={(e) => setSelectedPocketId(e.target.value)}
-                className="w-full border border-[#e0e7e7] rounded-xl px-4 py-3 font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary bg-white"
-              >
-                {pockets.map((p) => (
-                  <option key={p.id} value={p.id} disabled={p.balance < buyVoucher.price}>
-                    {p.emoji} {p.name} — {formatRupiah(p.balance)}
-                    {p.balance < buyVoucher.price ? " (saldo kurang)" : ""}
-                  </option>
-                ))}
-              </select>
-              {selectedPocket && (
-                <div className="mt-2 flex justify-between text-xs font-['Lato',sans-serif] text-[rgba(0,0,0,0.5)]">
-                  <span>Saldo kantong: {formatRupiah(selectedPocket.balance)}</span>
-                  <span className={selectedPocket.balance >= buyVoucher.price ? "text-green-600" : "text-red-500"}>
-                    Sisa: {formatRupiah(selectedPocket.balance - buyVoucher.price)}
-                  </span>
+              <div className="bg-[#f0f9f9] border border-[#e0e7e7] rounded-xl px-4 py-3">
+                <p className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.5)] text-xs mb-0.5">Saldo Utama</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg">
+                    {formatRupiah(accountBalance)}
+                  </p>
+                  <p className={`font-['Lato',sans-serif] text-xs font-semibold ${
+                    accountBalance >= buyVoucher.price ? "text-green-600" : "text-red-500"
+                  }`}>
+                    Sisa: {formatRupiah(accountBalance - buyVoucher.price)}
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
 
             {buyError && (
@@ -609,12 +596,7 @@ export function VoucherPage() {
               </button>
               <button
                 onClick={handleConfirmBuy}
-                disabled={
-                  buyLoading ||
-                  !selectedPocketId ||
-                  !selectedPocket ||
-                  selectedPocket.balance < buyVoucher.price
-                }
+                disabled={buyLoading || accountBalance < buyVoucher.price}
                 className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-all flex items-center justify-center gap-2"
               >
                 {buyLoading ? (
@@ -667,11 +649,11 @@ export function VoucherPage() {
                     </p>
                   </div>
                 </div>
-                {successRedemption.mockCode && (
+                {successRedemption.redemptionCode && (
                   <div className="bg-white rounded-xl p-4 text-center border border-bsi-teal-primary/30">
                     <p className="font-['Lato',sans-serif] text-[rgba(0,0,0,0.5)] text-xs mb-1">Kode Voucher</p>
                     <p className="font-['Poppins',sans-serif] font-bold text-bsi-teal-primary text-xl tracking-widest">
-                      {successRedemption.mockCode}
+                      {successRedemption.redemptionCode}
                     </p>
                   </div>
                 )}

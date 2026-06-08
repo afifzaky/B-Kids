@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? "";
 
 export function AdminLogin() {
   const router = useRouter();
@@ -14,6 +15,25 @@ export function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const captchaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!HCAPTCHA_SITE_KEY) return;
+    const script = document.createElement("script");
+    script.src = "https://js.hcaptcha.com/1/api.js?render=explicit";
+    script.async = true;
+    script.onload = () => {
+      if (captchaRef.current && (window as { hcaptcha?: { render: (el: HTMLElement, opts: object) => void } }).hcaptcha) {
+        (window as { hcaptcha?: { render: (el: HTMLElement, opts: object) => void } }).hcaptcha!.render(captchaRef.current, {
+          sitekey: HCAPTCHA_SITE_KEY,
+          callback: (token: string) => setCaptchaToken(token),
+          "expired-callback": () => setCaptchaToken(""),
+        });
+      }
+    };
+    document.head.appendChild(script);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,12 +44,19 @@ export function AdminLogin() {
       return;
     }
 
+    if (HCAPTCHA_SITE_KEY && !captchaToken) {
+      setError("Selesaikan verifikasi CAPTCHA terlebih dahulu");
+      return;
+    }
+
     setIsLoading(true);
     try {
+      const body: Record<string, string> = { email, password };
+      if (captchaToken) body.captchaToken = captchaToken;
       const res = await fetch(`${API_BASE_URL}/api/auth/login/admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -158,6 +185,13 @@ export function AdminLogin() {
                 </button>
               </div>
             </div>
+
+            {/* hCaptcha Widget */}
+            {HCAPTCHA_SITE_KEY && (
+              <div className="flex justify-center">
+                <div ref={captchaRef} />
+              </div>
+            )}
 
             {/* Submit */}
             <button

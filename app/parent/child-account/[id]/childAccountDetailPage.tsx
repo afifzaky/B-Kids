@@ -43,6 +43,7 @@ interface SpendingLimit {
   period: string;
   limitAmount: number;
   excludeInfaq: boolean;
+  voucherType: string | null;
 }
 
 interface ChildSummary {
@@ -97,6 +98,13 @@ const PERIOD_LABELS: Record<string, string> = {
   MONTHLY: "Bulanan",
 };
 
+const VOUCHER_TYPE_LABELS: Record<string, string> = {
+  DISCOUNT: "Diskon",
+  GAME_TOPUP: "Game Top-up",
+  E_WALLET: "E-Wallet",
+  EDUCATION: "Edukasi",
+};
+
 export function ChildAccountDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [summary, setSummary] = useState<ChildSummary | null>(null);
@@ -110,6 +118,21 @@ export function ChildAccountDetailPage() {
   const [limitsSubmitting, setLimitsSubmitting] = useState(false);
   const [limitsError, setLimitsError] = useState<string | null>(null);
 
+  // Manage Account Modal (ganti password / PIN anak)
+  const [showManageModal, setShowManageModal] = useState(false);
+  const [manageTab, setManageTab] = useState<"password" | "pin">("password");
+  const [pwForm, setPwForm] = useState({ newPassword: "", parentPin: "" });
+  const [pinForm, setPinForm] = useState({ newPin: "", parentPin: "" });
+  const [manageLoading, setManageLoading] = useState(false);
+  const [manageError, setManageError] = useState<string | null>(null);
+  const [manageSuccess, setManageSuccess] = useState<string | null>(null);
+
+  // Category Limit Modal
+  const [showCatLimitModal, setShowCatLimitModal] = useState(false);
+  const [catLimitForm, setCatLimitForm] = useState({ voucherType: "DISCOUNT", period: "MONTHLY", limitAmount: "" });
+  const [catLimitSubmitting, setCatLimitSubmitting] = useState(false);
+  const [catLimitError, setCatLimitError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!id) return;
     const token = localStorage.getItem("accessToken");
@@ -117,13 +140,13 @@ export function ChildAccountDetailPage() {
 
     Promise.all([
       authFetch(`${API_BASE_URL}/api/parent/summary/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-      authFetch(`${API_BASE_URL}/api/chores`, { headers: { Authorization: `Bearer ${token}` } }),
+      authFetch(`${API_BASE_URL}/api/chores?childId=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
     ])
       .then(([summaryRes, choresRes]) => Promise.all([summaryRes.json(), choresRes.json()]))
       .then(([summaryData, choresData]) => {
         if (summaryData.success) setSummary(summaryData.data);
         else setError(summaryData.message ?? "Gagal memuat data");
-        if (choresData.success) setChores(choresData.data.filter((c: Chore) => c.assignedToId === id));
+        if (choresData.success) setChores(choresData.data);
       })
       .catch(() => setError("Gagal terhubung ke server"))
       .finally(() => setIsLoading(false));
@@ -175,6 +198,85 @@ export function ChildAccountDetailPage() {
       setLimitsError("Gagal terhubung ke server");
     } finally {
       setLimitsSubmitting(false);
+    }
+  };
+
+  const openManageModal = (tab: "password" | "pin") => {
+    setManageTab(tab);
+    setManageError(null);
+    setManageSuccess(null);
+    setPwForm({ newPassword: "", parentPin: "" });
+    setPinForm({ newPin: "", parentPin: "" });
+    setShowManageModal(true);
+  };
+
+  const handleChangeChildPassword = async () => {
+    if (!pwForm.newPassword || !pwForm.parentPin) { setManageError("Isi semua field"); return; }
+    if (pwForm.newPassword.length < 6) { setManageError("Password minimal 6 karakter"); return; }
+    if (!/^\d{6}$/.test(pwForm.parentPin)) { setManageError("PIN Anda harus tepat 6 digit angka"); return; }
+    const token = localStorage.getItem("accessToken");
+    if (!token || !id) return;
+    setManageLoading(true); setManageError(null); setManageSuccess(null);
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/auth/children/${id}/password`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ newPassword: pwForm.newPassword, parentPin: pwForm.parentPin }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setManageError(data.message ?? "Gagal mengubah password"); return; }
+      setManageSuccess("Password anak berhasil diubah");
+      setPwForm({ newPassword: "", parentPin: "" });
+    } catch { setManageError("Gagal terhubung ke server"); }
+    finally { setManageLoading(false); }
+  };
+
+  const handleChangeChildPin = async () => {
+    if (!pinForm.newPin || !pinForm.parentPin) { setManageError("Isi semua field"); return; }
+    if (!/^\d{6}$/.test(pinForm.newPin)) { setManageError("PIN baru harus tepat 6 digit angka"); return; }
+    if (!/^\d{6}$/.test(pinForm.parentPin)) { setManageError("PIN Anda harus tepat 6 digit angka"); return; }
+    const token = localStorage.getItem("accessToken");
+    if (!token || !id) return;
+    setManageLoading(true); setManageError(null); setManageSuccess(null);
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/auth/children/${id}/pin`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ newPin: pinForm.newPin, parentPin: pinForm.parentPin }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setManageError(data.message ?? "Gagal mengubah PIN"); return; }
+      setManageSuccess("PIN anak berhasil diubah");
+      setPinForm({ newPin: "", parentPin: "" });
+    } catch { setManageError("Gagal terhubung ke server"); }
+    finally { setManageLoading(false); }
+  };
+
+  const handleSaveCategoryLimit = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token || !id) return;
+    const amount = catLimitForm.limitAmount === "" ? null : Number(catLimitForm.limitAmount);
+    if (amount !== null && (isNaN(amount) || amount <= 0)) {
+      setCatLimitError("Masukkan nominal yang valid, atau kosongkan untuk menghapus limit");
+      return;
+    }
+    setCatLimitSubmitting(true);
+    setCatLimitError(null);
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/limits/${id}/category`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ voucherType: catLimitForm.voucherType, period: catLimitForm.period, limitAmount: amount }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setCatLimitError(data.message ?? "Gagal menyimpan limit kategori"); return; }
+      setSummary((prev) => prev ? { ...prev, limits: data.data ?? [] } : prev);
+      setShowCatLimitModal(false);
+      setCatLimitForm({ voucherType: "DISCOUNT", period: "MONTHLY", limitAmount: "" });
+    } catch {
+      setCatLimitError("Gagal terhubung ke server");
+    } finally {
+      setCatLimitSubmitting(false);
     }
   };
 
@@ -269,6 +371,16 @@ export function ChildAccountDetailPage() {
               </svg>
               Tinjau Tugas
             </Link>
+            <button
+              onClick={() => openManageModal("password")}
+              className="inline-flex items-center gap-2 bg-white border border-[#e0e7e7] text-gray-600 font-['Poppins',sans-serif] font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Kelola Akun
+            </button>
           </div>
         </div>
       </div>
@@ -355,47 +467,84 @@ export function ChildAccountDetailPage() {
           )}
         </div>
 
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-[#e0e7e7] shadow-sm p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg">Batas Pengeluaran</h3>
-            <button
-              onClick={openLimitsModal}
-              className="inline-flex items-center gap-1.5 text-bsi-teal-primary hover:text-bsi-teal-hover-dark font-['Poppins',sans-serif] font-semibold text-xs transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              Edit
-            </button>
-          </div>
-          {summary.limits.length > 0 ? (
-            <div className="space-y-4">
-              {summary.limits.map((limit) => (
-                <div key={limit.period} className="p-4 bg-[#f8fafa] rounded-xl border border-[#e0e7e7]">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm capitalize">
-                      {limit.period === "DAILY" ? "Harian" : limit.period === "WEEKLY" ? "Mingguan" : "Bulanan"}
-                    </span>
-                    <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-sm">
-                      {formatRupiah(limit.limitAmount)}
-                    </span>
-                  </div>
-                  {limit.excludeInfaq && (
-                    <p className="font-['Lato',sans-serif] text-gray-400 text-xs mt-1">Infaq dikecualikan</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div className="lg:col-span-4 bg-white rounded-2xl border border-[#e0e7e7] shadow-sm p-6 space-y-5">
+          {/* General limits */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-['Montserrat',sans-serif] font-bold text-[#030213] text-lg">Batas Pengeluaran</h3>
+              <button
+                onClick={openLimitsModal}
+                className="inline-flex items-center gap-1.5 text-bsi-teal-primary hover:text-bsi-teal-hover-dark font-['Poppins',sans-serif] font-semibold text-xs transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
-              </div>
-              <p className="font-['Lato',sans-serif] text-gray-400 text-sm">Belum ada batas pengeluaran</p>
+                Edit
+              </button>
             </div>
-          )}
+            {summary.limits.filter((l) => !l.voucherType).length > 0 ? (
+              <div className="space-y-3">
+                {summary.limits.filter((l) => !l.voucherType).map((limit) => (
+                  <div key={`${limit.period}-general`} className="p-3 bg-[#f8fafa] rounded-xl border border-[#e0e7e7]">
+                    <div className="flex justify-between items-center">
+                      <span className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">
+                        {PERIOD_LABELS[limit.period] ?? limit.period}
+                      </span>
+                      <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-sm">
+                        {formatRupiah(limit.limitAmount)}
+                      </span>
+                    </div>
+                    {limit.excludeInfaq && (
+                      <p className="font-['Lato',sans-serif] text-gray-400 text-xs mt-1">Infaq dikecualikan</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="font-['Lato',sans-serif] text-gray-400 text-sm text-center py-4">Belum ada batas pengeluaran umum</p>
+            )}
+          </div>
+
+          <div className="border-t border-[#f0f0f0]" />
+
+          {/* Category limits */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-['Poppins',sans-serif] font-semibold text-gray-600 text-sm">Batas per Kategori</h4>
+              <button
+                onClick={() => { setCatLimitError(null); setCatLimitForm({ voucherType: "DISCOUNT", period: "MONTHLY", limitAmount: "" }); setShowCatLimitModal(true); }}
+                className="inline-flex items-center gap-1 text-bsi-teal-primary hover:text-bsi-teal-hover-dark font-['Poppins',sans-serif] font-semibold text-xs transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Tambah
+              </button>
+            </div>
+            {summary.limits.filter((l) => !!l.voucherType).length > 0 ? (
+              <div className="space-y-2">
+                {summary.limits.filter((l) => !!l.voucherType).map((limit) => (
+                  <div key={`${limit.period}-${limit.voucherType}`} className="p-3 bg-[#f8fafa] rounded-xl border border-[#e0e7e7]">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-xs block">
+                          {VOUCHER_TYPE_LABELS[limit.voucherType!] ?? limit.voucherType}
+                        </span>
+                        <span className="font-['Lato',sans-serif] text-gray-400 text-xs">
+                          {PERIOD_LABELS[limit.period] ?? limit.period}
+                        </span>
+                      </div>
+                      <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-sm">
+                        {formatRupiah(limit.limitAmount)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="font-['Lato',sans-serif] text-gray-400 text-xs text-center py-3">Belum ada batas per kategori</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -563,6 +712,233 @@ export function ChildAccountDetailPage() {
                   </svg>
                 ) : null}
                 {limitsSubmitting ? "Menyimpan..." : "Simpan Limit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kelola Akun Modal */}
+      {showManageModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-xl">Kelola Akun Anak</h2>
+                <p className="font-['Lato',sans-serif] text-gray-500 text-xs mt-0.5">Konfirmasi dengan PIN Anda</p>
+              </div>
+              <button onClick={() => setShowManageModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 p-1 bg-[#f3f4f6] rounded-xl mb-5">
+              <button
+                onClick={() => { setManageTab("password"); setManageError(null); setManageSuccess(null); }}
+                className={`flex-1 py-2 rounded-lg font-['Poppins',sans-serif] font-semibold text-sm transition-colors ${manageTab === "password" ? "bg-white text-bsi-teal-primary shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Ubah Password
+              </button>
+              <button
+                onClick={() => { setManageTab("pin"); setManageError(null); setManageSuccess(null); }}
+                className={`flex-1 py-2 rounded-lg font-['Poppins',sans-serif] font-semibold text-sm transition-colors ${manageTab === "pin" ? "bg-white text-bsi-teal-primary shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Ubah PIN Anak
+              </button>
+            </div>
+
+            {manageTab === "password" ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1.5">
+                    Password Baru Anak
+                  </label>
+                  <input
+                    type="password"
+                    value={pwForm.newPassword}
+                    onChange={(e) => setPwForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                    placeholder="Minimal 6 karakter"
+                    className="w-full px-4 py-2.5 border border-[#e0e7e7] rounded-xl font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1.5">
+                    PIN Anda (konfirmasi)
+                  </label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={pwForm.parentPin}
+                    onChange={(e) => setPwForm((prev) => ({ ...prev, parentPin: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                    placeholder="6 digit PIN Anda"
+                    className="w-full px-4 py-2.5 border border-[#e0e7e7] rounded-xl font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1.5">
+                    PIN Baru Anak
+                  </label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={pinForm.newPin}
+                    onChange={(e) => setPinForm((prev) => ({ ...prev, newPin: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                    placeholder="6 digit PIN baru"
+                    className="w-full px-4 py-2.5 border border-[#e0e7e7] rounded-xl font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1.5">
+                    PIN Anda (konfirmasi)
+                  </label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={pinForm.parentPin}
+                    onChange={(e) => setPinForm((prev) => ({ ...prev, parentPin: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                    placeholder="6 digit PIN Anda"
+                    className="w-full px-4 py-2.5 border border-[#e0e7e7] rounded-xl font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                  />
+                </div>
+              </div>
+            )}
+
+            {manageError && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <p className="font-['Lato',sans-serif] text-red-600 text-sm">{manageError}</p>
+              </div>
+            )}
+            {manageSuccess && (
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                <p className="font-['Lato',sans-serif] text-green-700 text-sm">{manageSuccess}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowManageModal(false)}
+                className="flex-1 bg-white border border-[#e0e7e7] py-2.5 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={manageTab === "password" ? handleChangeChildPassword : handleChangeChildPin}
+                disabled={manageLoading}
+                className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-50 py-2.5 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                {manageLoading ? (
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : null}
+                {manageLoading ? "Menyimpan..." : manageTab === "password" ? "Ubah Password" : "Ubah PIN"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Limit Modal */}
+      {showCatLimitModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-xl">Batas per Kategori</h2>
+                <p className="font-['Lato',sans-serif] text-gray-500 text-xs mt-0.5">Kosongkan nominal untuk menghapus limit</p>
+              </div>
+              <button onClick={() => setShowCatLimitModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1.5">
+                  Kategori Voucher
+                </label>
+                <select
+                  value={catLimitForm.voucherType}
+                  onChange={(e) => setCatLimitForm((prev) => ({ ...prev, voucherType: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-[#e0e7e7] rounded-xl font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary bg-white"
+                >
+                  <option value="DISCOUNT">Diskon</option>
+                  <option value="GAME_TOPUP">Game Top-up</option>
+                  <option value="E_WALLET">E-Wallet</option>
+                  <option value="EDUCATION">Edukasi</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1.5">
+                  Periode
+                </label>
+                <select
+                  value={catLimitForm.period}
+                  onChange={(e) => setCatLimitForm((prev) => ({ ...prev, period: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-[#e0e7e7] rounded-xl font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary bg-white"
+                >
+                  <option value="DAILY">Harian</option>
+                  <option value="WEEKLY">Mingguan</option>
+                  <option value="MONTHLY">Bulanan</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1.5">
+                  Nominal Batas (Rp)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-['Poppins',sans-serif]">Rp</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={catLimitForm.limitAmount}
+                    onChange={(e) => setCatLimitForm((prev) => ({ ...prev, limitAmount: e.target.value }))}
+                    placeholder="Kosongkan untuk hapus limit"
+                    className="w-full pl-10 pr-4 py-2.5 border border-[#e0e7e7] rounded-xl font-['Lato',sans-serif] text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-bsi-teal-primary/30 focus:border-bsi-teal-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {catLimitError && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <p className="font-['Lato',sans-serif] text-red-600 text-sm">{catLimitError}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowCatLimitModal(false)}
+                className="flex-1 bg-white border border-[#e0e7e7] py-2.5 rounded-xl font-['Poppins',sans-serif] font-bold text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveCategoryLimit}
+                disabled={catLimitSubmitting}
+                className="flex-1 bg-bsi-teal-primary hover:bg-bsi-teal-hover-dark disabled:opacity-50 py-2.5 rounded-xl font-['Poppins',sans-serif] font-bold text-white text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                {catLimitSubmitting ? (
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : null}
+                {catLimitSubmitting ? "Menyimpan..." : catLimitForm.limitAmount === "" ? "Hapus Limit" : "Simpan Limit"}
               </button>
             </div>
           </div>
