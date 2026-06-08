@@ -169,16 +169,8 @@ export function ChildLogin() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">
-                  {isAdminMode ? "Email Admin" : "Username"}
+                  Username
                 </label>
-                {!isAdminMode && (
-                  <Link
-                    href="/auth/child/forgot-username"
-                    className="font-['Poppins',sans-serif] text-bsi-orange-primary text-xs font-semibold hover:underline"
-                  >
-                    Lupa Username?
-                  </Link>
-                )}
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -190,31 +182,19 @@ export function ChildLogin() {
                   type="text"
                   value={formData.username}
                   onChange={(e) => handleChange("username", e.target.value)}
-                  placeholder="Username anak atau email admin"
-                  className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl font-['Lato',sans-serif] text-base focus:outline-none transition-colors text-gray-900 bg-white placeholder:text-gray-400 ${isAdminMode ? "border-bsi-teal-primary focus:border-bsi-teal-primary" : "border-gray-200 focus:border-bsi-orange-primary"}`}
+                  placeholder="Username anak"
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl font-['Lato',sans-serif] text-base focus:border-bsi-orange-primary focus:outline-none transition-colors text-gray-900 bg-white placeholder:text-gray-400"
                   required
                 />
               </div>
-              {isAdminMode && (
-                <div className="mt-2 flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-bsi-teal-primary" />
-                  <p className="font-['Poppins',sans-serif] text-bsi-teal-primary text-xs font-semibold">Mode Login Admin terdeteksi</p>
-                </div>
-              )}
             </div>
 
             {/* Password Field */}
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-2">
                 <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">
                   Password
                 </label>
-                <Link
-                  href="/auth/child/forgot-password"
-                  className="font-['Poppins',sans-serif] text-bsi-orange-primary text-xs font-semibold hover:underline"
-                >
-                  Lupa Password?
-                </Link>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

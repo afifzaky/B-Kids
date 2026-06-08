@@ -306,8 +306,8 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto`}
       >
-        <div className="flex items-center px-6 py-5 border-b border-[#e0e7e7]">
-          <img src="/logo-bkids.png" alt="B-Kids" className="h-9 w-auto object-contain" />
+        <div className="flex justify-center items-center px-6 py-5 border-b border-[#e0e7e7]">
+          <img src="/logo-bkids.png" alt="B-Kids" className="h-14 w-auto object-contain" />
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">

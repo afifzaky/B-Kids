@@ -26,7 +26,7 @@ const svgPaths = {
 function NavLogo() {
   return (
     <div className="content-stretch flex gap-[8px] items-center relative shrink-0">
-      <img src="/logo-bkids.png" alt="B-Kids" className="h-8 w-auto object-contain" />
+      <img src="/logo-bkids.png" alt="B-Kids" className="h-14 w-auto object-contain" />
     </div>
   );
 }
@@ -383,7 +383,7 @@ function Footer() {
         {/* Brand */}
         <div className="flex flex-col gap-[8px] items-start">
           <div className="flex gap-[8px] items-center">
-            <img src="/logo-bkids.png" alt="B-Kids" className="h-8 w-auto object-contain" />
+            <img src="/logo-bkids.png" alt="B-Kids" className="h-10 w-auto object-contain" />
           </div>
           <div className="font-['Poppins',sans-serif] text-[#3e4949] text-[14px] tracking-[0.14px] leading-[20px] max-w-[320px]">
             Financial education for the next generation. Secure, ethical, and fun.

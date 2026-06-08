@@ -213,8 +213,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         } lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto`}
       >
         {/* Logo */}
-        <div className="flex items-center px-6 py-5 border-b border-[#bdc9c9]">
-          <img src="/logo-bkids.png" alt="B-Kids" className="h-9 w-auto object-contain" />
+        <div className="flex justify-center items-center px-6 py-5 border-b border-[#bdc9c9]">
+          <img src="/logo-bkids.png" alt="B-Kids" className="h-14 w-auto object-contain" />
         </div>
 
         {/* Nav items */}
