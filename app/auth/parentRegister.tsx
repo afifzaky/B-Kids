@@ -84,7 +84,7 @@ export function ParentRegister() {
       newErrors.dateOfBirth = "Tanggal lahir wajib diisi";
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@.]+\.[^\s@]+$/;
     if (!formData.email) {
       newErrors.email = "Email wajib diisi";
     } else if (!emailRegex.test(formData.email)) {
