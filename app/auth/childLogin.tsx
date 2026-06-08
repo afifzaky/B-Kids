@@ -229,8 +229,8 @@ export function ChildLogin() {
               </div>
             </div>
 
-            {/* PIN Field — disembunyikan saat mode Admin */}
-            <div className={isAdminMode ? "hidden" : ""}>
+            {/* PIN Field */}
+            <div>
               <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1">
                 PIN
               </label>
