@@ -1,0 +1,18 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: byond_backend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '4000:4000'
+
+# =============================================
+# Cara pakai:
+# docker-compose up --build -d   ← build + jalankan (Supabase dari .env)
+# docker-compose up -d           ← jalankan tanpa rebuild
+# docker-compose logs -f         ← lihat logs
+# docker-compose down            ← stop
+# =============================================

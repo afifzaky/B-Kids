@@ -1,13 +1,616 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// =============================================
+// BYOND KIDS — Prisma Schema
+// PostgreSQL via Supabase
+// =============================================
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =============================================
+// ENUMS
+// =============================================
+
+enum Role {
+  SUPER_ADMIN
+  PARENT
+  CHILD
+}
+
+enum AccountType {
+  SAVINGS        // tabungan utama
+  CHILD_SAVINGS  // tabungan anak (sub-account)
+}
+
+enum TransactionType {
+  CREDIT         // uang masuk
+  DEBIT          // uang keluar
+}
+
+enum TransactionSource {
+  TOP_UP_FROM_PARENT   // ortu transfer ke anak
+  CHORE_REWARD         // reward chores disetujui ke tabungan utama
+  POCKET_ALLOCATE      // anak alokasikan ke pocket
+  POCKET_DEALLOCATE    // anak tarik balik dari pocket
+  VOUCHER_PURCHASE     // beli voucher
+  INFAQ                // sedekah
+  ADJUSTMENT           // koreksi admin
+  LEARNING_REWARD      // reward kuis e-learning lulus
+}
+
+enum ParentTransactionSource {
+  INITIAL_BALANCE    // saldo awal registrasi
+  DEPOSIT            // top-up manual (simulasi BSI)
+  TRANSFER_TO_CHILD  // kirim ke rekening anak
+  CHORE_REWARD       // reward chore disetujui (debit dari parent)
+  ADJUSTMENT         // koreksi manual
+  LEARNING_REWARD    // reward kuis e-learning (debit dari parent)
+}
+
+enum LearningCategory {
+  MENABUNG          // dasar-dasar menabung
+  BELANJA_BIJAK     // cara belanja yang cerdas
+  INFAQ_SEDEKAH     // berbagi dan bersedekah
+  KEUANGAN_DASAR   // pengelolaan keuangan pribadi
+  INVESTASI         // pengenalan investasi
+  LAINNYA
+}
+
+enum LearningDifficulty {
+  MUDAH
+  SEDANG
+  SULIT
+}
+
+enum ChoreStatus {
+  ACTIVE           // aktif, anak bisa lihat & submit
+  PENDING_REVIEW   // menunggu review ortu
+  APPROVED         // ortu setuju, reward cair ke tabungan utama
+  REJECTED         // ortu tolak final (sudah 2x submit)
+  REVISION_NEEDED  // butuh perbaikan (submit 1x, bisa revisi 1x lagi)
+  EXPIRED          // deadline lewat tanpa submission
+  CANCELLED        // dibatalkan ortu (hanya jika masih ACTIVE)
+}
+
+enum PocketCategory {
+  JAJAN     // uang saku harian
+  HAJI      // tabungan haji
+  QURBAN    // tabungan qurban
+  INFAQ     // alokasi sedekah
+  CUSTOM    // bebas diberi nama anak
+}
+
+enum SpendingLimitPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum InfaqInstitution {
+  BSI_MASLAHAT
+  BAZNAS
+  LAZISNU
+  LAZISMU
+  OTHER
+}
+
+enum VoucherType {
+  DISCOUNT    // potongan harga e-commerce (Shopee, Tokopedia)
+  GAME_TOPUP  // top-up game (Mobile Legends, Free Fire, PUBG)
+  E_WALLET    // top-up e-wallet (OVO, GoPay, Dana)
+  EDUCATION   // platform edukasi (Ruangguru, Zenius)
+}
+
+// =============================================
+// TABEL UTAMA
+// =============================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  phone         String?   @unique
+  passwordHash  String    @map("password_hash")
+  role          Role
+  isActive      Boolean   @default(true) @map("is_active")
+  loginAttempts Int       @default(0) @map("login_attempts")
+  lockedUntil   DateTime? @map("locked_until")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  parentProfile           ParentProfile?
+  childProfile            ChildProfile?
+  auditLogs               AuditLog[]
+  refreshTokens           RefreshToken[]
+  passwordResetTokens     PasswordResetToken[]
+  learningModulesCreated  LearningModule[]
+  learningArticlesCreated LearningArticle[]
+
+  @@map("users")
+}
+
+model ParentProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  fullName         String   @map("full_name")
+  nik              String   @unique
+  dateOfBirth      DateTime @map("date_of_birth")
+  // Nomor rekening BSI — unique: satu rekening = satu akun Byond
+  bsiAccountNumber String   @unique @map("bsi_account_number")
+  // PIN Tabungan (6 digit) — 2nd factor saat login & konfirmasi transaksi penting
+  pinHash          String   @default("") @map("pin_hash")
+  // Foto profil orang tua (URL)
+  avatarUrl        String?  @map("avatar_url")
+  // Saldo dummy — dalam produksi, di-sync dari BSI Open API
+  dummyBalance     BigInt   @default(1000000000) @map("dummy_balance") // Rp 10.000.000
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyLinks       FamilyLink[]
+  choresCreated     Chore[]         @relation("ChoreCreator")
+  spendingLimitsSet SpendingLimit[] @relation("LimitSetBy")
+  ledger            ParentLedger[]
+
+  @@map("parent_profiles")
+}
+
+model ChildProfile {
+  id                 String    @id @default(uuid())
+  userId             String    @unique @map("user_id")
+  fullName           String    @map("full_name")
+  dateOfBirth        DateTime  @map("date_of_birth")
+  // Username untuk login — dibuat oleh orangtua saat create akun anak
+  username           String?   @unique @map("username")
+  // PIN 6 digit — 2nd factor saat login anak
+  pinHash            String    @map("pin_hash")
+  deviceId           String?   @map("device_id")
+  // Avatar anak — emoji atau URL gambar (hanya anak yg bisa ubah)
+  avatar             String?   @map("avatar")
+  createdByParentId  String    @map("created_by_parent_id")
+  isActive           Boolean   @default(true) @map("is_active")
+  // Nomor rekening anak (sub-account BSI) — dummy untuk prototype
+  childAccountNumber String    @map("child_account_number")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyLinks        FamilyLink[]
+  account            ChildAccount?
+  choresAssigned     Chore[]         @relation("ChoreAssignee")
+  spendingLimits     SpendingLimit[] @relation("ChildLimits")
+  infaqLogs          InfaqLog[]
+  voucherRedemptions VoucherRedemption[]
+  parentTransfers    ParentLedger[]  @relation("LedgerRelatedChild")
+  learningProgresses LearningProgress[]
+  xpBalance          ChildXpBalance?
+
+  @@map("child_profiles")
+}
+
+model FamilyLink {
+  id              String   @id @default(uuid())
+  parentProfileId String   @map("parent_profile_id")
+  childProfileId  String   @map("child_profile_id")
+  linkedAt        DateTime @default(now()) @map("linked_at")
+
+  parentProfile ParentProfile @relation(fields: [parentProfileId], references: [id], onDelete: Cascade)
+  childProfile  ChildProfile  @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([parentProfileId, childProfileId])
+  @@map("family_links")
+}
+
+// =============================================
+// REKENING & SALDO ANAK
+// =============================================
+
+// Tabungan Utama anak — sumber saldo sebelum dibagi ke pocket
+model ChildAccount {
+  id             String   @id @default(uuid())
+  childProfileId String   @unique @map("child_profile_id")
+  balance        BigInt   @default(0)
+  currency       String   @default("IDR")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  childProfile ChildProfile   @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  ledger       AccountLedger[]
+  pockets      Pocket[]
+
+  @@map("child_accounts")
+}
+
+// Ledger rekening anak — INSERT ONLY
+model AccountLedger {
+  id           String            @id @default(uuid())
+  accountId    String            @map("account_id")
+  type         TransactionType
+  source       TransactionSource
+  amount       BigInt
+  balanceAfter BigInt            @map("balance_after")
+  referenceId  String?           @map("reference_id")
+  triggeredBy  String            @map("triggered_by")
+  notes        String?
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  account ChildAccount @relation(fields: [accountId], references: [id])
+
+  @@map("account_ledger")
+}
+
+// =============================================
+// POCKET — Alokasi Saldo Anak
+// =============================================
+
+model Pocket {
+  id              String         @id @default(uuid())
+  accountId       String         @map("account_id")
+  name            String
+  category        PocketCategory
+  balance         BigInt         @default(0)
+  targetAmount    BigInt?        @map("target_amount")
+  intentionText   String?        @map("intention_text")
+  emoji           String?        @default("💰")
+  deadline        DateTime?
+  isActive        Boolean        @default(true) @map("is_active")
+  isGoalCompleted Boolean        @default(false) @map("is_goal_completed")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  account ChildAccount   @relation(fields: [accountId], references: [id])
+  ledger  PocketLedger[]
+
+  @@map("pockets")
+}
+
+// Ledger pocket — INSERT ONLY
+model PocketLedger {
+  id           String            @id @default(uuid())
+  pocketId     String            @map("pocket_id")
+  type         TransactionType
+  source       TransactionSource
+  amount       BigInt
+  balanceAfter BigInt            @map("balance_after")
+  referenceId  String?           @map("reference_id")
+  triggeredBy  String            @map("triggered_by")
+  notes        String?
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  pocket Pocket @relation(fields: [pocketId], references: [id])
+
+  @@map("pocket_ledger")
+}
+
+// =============================================
+// CHORES — Tugas & Reward
+// =============================================
+
+model Chore {
+  id           String      @id @default(uuid())
+  createdById  String      @map("created_by_id")
+  assignedToId String      @map("assigned_to_id")
+  title        String
+  description  String?
+  category     String
+  rewardAmount BigInt      @map("reward_amount") // dalam sen — reward masuk ke Tabungan Utama anak
+  deadline     DateTime
+  status       ChoreStatus @default(ACTIVE)
+  rejectionNote String?    @map("rejection_note")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  createdBy   ParentProfile     @relation("ChoreCreator", fields: [createdById], references: [id])
+  assignedTo  ChildProfile      @relation("ChoreAssignee", fields: [assignedToId], references: [id])
+  submissions ChoreSubmission[]
+
+  @@map("chores")
+}
+
+model ChoreSubmission {
+  id           String    @id @default(uuid())
+  choreId      String    @map("chore_id")
+  mediaUrl     String?   @map("media_url")
+  notes        String?
+  submittedAt  DateTime  @default(now()) @map("submitted_at")
+  reviewedAt   DateTime? @map("reviewed_at")
+  reviewerNote String?   @map("reviewer_note")
+  attempt      Int       @default(1)
+
+  chore Chore @relation(fields: [choreId], references: [id], onDelete: Cascade)
+
+  @@map("chore_submissions")
+}
+
+// =============================================
+// SPENDING LIMIT
+// =============================================
+
+model SpendingLimit {
+  id              String              @id @default(uuid())
+  childProfileId  String              @map("child_profile_id")
+  setByParentId   String              @map("set_by_parent_id")
+  period          SpendingLimitPeriod
+  limitAmount     BigInt              @map("limit_amount")
+  excludeInfaq    Boolean             @default(true) @map("exclude_infaq")
+  voucherType     String?             @map("voucher_type") // null = semua tipe; isi untuk limit per kategori (GAME_TOPUP, dll.)
+  isActive        Boolean             @default(true) @map("is_active")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  childProfile ChildProfile  @relation("ChildLimits", fields: [childProfileId], references: [id])
+  setByParent  ParentProfile @relation("LimitSetBy", fields: [setByParentId], references: [id])
+
+  // null voucherType = limit umum; isi untuk limit per kategori (GAME_TOPUP, dll.)
+  // PostgreSQL: NULL != NULL dalam unique index → satu limit umum + per-kategori bisa coexist
+  @@unique([childProfileId, period, voucherType])
+  @@map("spending_limits")
+}
+
+// =============================================
+// INFAQ / SEDEKAH
+// =============================================
+
+// Tabel lembaga infaq — dikelola admin
+model InfaqInstitutionConfig {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  logoUrl     String?  @map("logo_url")
+  bankInfo    String?  @map("bank_info")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  infaqLogs InfaqLog[]
+
+  @@map("infaq_institution_configs")
+}
+
+model InfaqLog {
+  id                  String   @id @default(uuid())
+  childProfileId      String   @map("child_profile_id")
+  institutionConfigId String   @map("institution_config_id")
+  amount              BigInt
+  notes               String?
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  childProfile      ChildProfile           @relation(fields: [childProfileId], references: [id])
+  institutionConfig InfaqInstitutionConfig @relation(fields: [institutionConfigId], references: [id])
+
+  @@map("infaq_logs")
+}
+
+// =============================================
+// VOUCHER MARKETPLACE
+// =============================================
+
+model VoucherCatalog {
+  id           String      @id @default(uuid())
+  name         String
+  provider     String
+  category     String
+  voucherType  VoucherType @default(DISCOUNT) @map("voucher_type")
+  price        BigInt
+  faceValue    BigInt?     @map("face_value")      // nilai nominal voucher (misal: Rp 25.000 untuk voucher Shopee Rp 25.000)
+  description  String?
+  imageUrl     String?     @map("image_url")
+  mockCode     String      @map("mock_code")
+  stock        Int?        // null = unlimited
+  maxPerChild  Int?        @map("max_per_child")   // null = unlimited per anak
+  validFrom    DateTime?   @map("valid_from")
+  validUntil   DateTime?   @map("valid_until")
+  isActive     Boolean     @default(true) @map("is_active")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  redemptions VoucherRedemption[]
+
+  @@map("voucher_catalog")
+}
+
+model VoucherRedemption {
+  id             String   @id @default(uuid())
+  childProfileId String   @map("child_profile_id")
+  voucherId      String   @map("voucher_id")
+  amount         BigInt
+  mockCodeIssued String   @map("mock_code_issued")
+  redeemedAt     DateTime @default(now()) @map("redeemed_at")
+
+  childProfile ChildProfile   @relation(fields: [childProfileId], references: [id])
+  voucher      VoucherCatalog @relation(fields: [voucherId], references: [id])
+
+  @@map("voucher_redemptions")
+}
+
+// =============================================
+// PARENT LEDGER — Riwayat transaksi orang tua
+// =============================================
+
+model ParentLedger {
+  id              String                  @id @default(uuid())
+  parentProfileId String                  @map("parent_profile_id")
+  type            TransactionType
+  source          ParentTransactionSource
+  amount          BigInt
+  balanceAfter    BigInt                  @map("balance_after")
+  relatedChildId  String?                 @map("related_child_id")
+  notes           String?
+  createdAt       DateTime                @default(now()) @map("created_at")
+
+  parentProfile ParentProfile  @relation(fields: [parentProfileId], references: [id])
+  relatedChild  ChildProfile?  @relation("LedgerRelatedChild", fields: [relatedChildId], references: [id])
+
+  @@map("parent_ledger")
+}
+
+// =============================================
+// REFRESH TOKEN — Untuk logout & session tracking
+// =============================================
+
+model RefreshToken {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  tokenHash    String   @unique @map("token_hash")
+  expiresAt    DateTime @map("expires_at")
+  lastActiveAt DateTime @default(now()) @map("last_active_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// =============================================
+// AUDIT LOG
+// =============================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// =============================================
+// PASSWORD RESET TOKEN
+// Simpan hash SHA-256 dari raw token — raw token hanya dikirim via email.
+// Single-use: usedAt di-set saat dipakai, tidak boleh digunakan ulang.
+// =============================================
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+// =============================================
+// E-LEARNING
+// =============================================
+
+model LearningModule {
+  id          String             @id @default(uuid())
+  title       String
+  description String?
+  category    LearningCategory
+  thumbnail   String?
+  isPublished Boolean            @default(false) @map("is_published")
+  order       Int                @default(0)
+  createdById String             @map("created_by_id")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  createdBy User              @relation(fields: [createdById], references: [id])
+  articles  LearningArticle[]
+
+  @@map("learning_modules")
+}
+
+model LearningArticle {
+  id             String             @id @default(uuid())
+  moduleId       String?            @map("module_id")
+  title          String
+  content        String
+  imageUrl       String?            @map("image_url")
+  category       LearningCategory
+  difficulty     LearningDifficulty
+  readingTimeMin Int                @default(5) @map("reading_time_min")
+  xpReward       Int                @default(10) @map("xp_reward")
+  isPublished    Boolean            @default(false) @map("is_published")
+  order          Int                @default(0)
+  createdById    String             @map("created_by_id")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  module     LearningModule?    @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  createdBy  User               @relation(fields: [createdById], references: [id])
+  quiz       Quiz?
+  progresses LearningProgress[]
+
+  @@map("learning_articles")
+}
+
+// Satu quiz per artikel. Dihapus otomatis jika artikel dihapus.
+model Quiz {
+  id         String    @id @default(uuid())
+  articleId  String    @unique @map("article_id")
+  xpBonus    Int       @default(20) @map("xp_bonus")
+  coinReward BigInt    @default(0) @map("coin_reward") // dalam sen (IDR × 100)
+  passScore  Int       @default(70) @map("pass_score") // minimum persentase lulus
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  article   LearningArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+
+  @@map("quizzes")
+}
+
+// Opsi jawaban disimpan sebagai JSON: [{text, isCorrect}]
+model QuizQuestion {
+  id          String   @id @default(uuid())
+  quizId      String   @map("quiz_id")
+  question    String
+  options     Json     // QuizOption[]
+  explanation String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_questions")
+}
+
+// Progress per anak per artikel — unique constraint mencegah duplikasi.
+model LearningProgress {
+  id              String    @id @default(uuid())
+  childProfileId  String    @map("child_profile_id")
+  articleId       String    @map("article_id")
+  readCompletedAt DateTime? @map("read_completed_at")
+  quizScore       Int?      @map("quiz_score")       // null = belum ambil kuis
+  quizPassedAt    DateTime? @map("quiz_passed_at")    // null = belum lulus / belum ambil
+  xpEarned        Int       @default(0) @map("xp_earned")
+  rewardPaidAt    DateTime? @map("reward_paid_at")    // null = reward belum dibayar
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  childProfile ChildProfile    @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  article      LearningArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([childProfileId, articleId])
+  @@map("learning_progresses")
+}
+
+// Satu record per anak — di-upsert setiap XP bertambah.
+model ChildXpBalance {
+  id             String   @id @default(uuid())
+  childProfileId String   @unique @map("child_profile_id")
+  totalXp        Int      @default(0) @map("total_xp")
+  level          Int      @default(1)
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  childProfile ChildProfile @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+
+  @@map("child_xp_balances")
 }
