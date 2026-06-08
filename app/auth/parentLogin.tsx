@@ -60,6 +60,26 @@ export function ParentLogin() {
 
     setIsLoading(true);
     try {
+      // Coba login Admin terlebih dahulu (PIN diabaikan untuk Admin)
+      const adminBody: Record<string, string> = { email: formData.email, password: formData.password };
+      if (captchaToken) adminBody.captchaToken = captchaToken;
+      const adminRes = await fetch(`${API_BASE_URL}/api/auth/login/admin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(adminBody),
+      });
+      const adminData = await adminRes.json();
+      if (adminRes.ok) {
+        localStorage.setItem("accessToken", adminData.data.accessToken);
+        localStorage.setItem("refreshToken", adminData.data.refreshToken);
+        localStorage.setItem("userRole", "SUPER_ADMIN");
+        localStorage.setItem("userName", adminData.data.user?.email ?? "Admin");
+        localStorage.setItem("loginOrigin", "parent");
+        router.push("/admin");
+        return;
+      }
+
+      // Bukan Admin — login sebagai Orang Tua dengan PIN Tabungan
       const body: Record<string, string> = { ...formData };
       if (captchaToken) body.captchaToken = captchaToken;
       const res = await fetch(`${API_BASE_URL}/api/auth/login/parent`, {

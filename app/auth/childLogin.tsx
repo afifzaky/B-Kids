@@ -17,6 +17,7 @@ export function ChildLogin() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
+  const isAdminMode = formData.username.includes("@");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
@@ -48,8 +49,13 @@ export function ChildLogin() {
     e.preventDefault();
     setError("");
 
-    if (!formData.username || !formData.password || !formData.pin) {
+    if (!formData.username || !formData.password) {
       setError("Semua field wajib diisi");
+      return;
+    }
+
+    if (!isAdminMode && !formData.pin) {
+      setError("PIN wajib diisi");
       return;
     }
 
@@ -60,6 +66,30 @@ export function ChildLogin() {
 
     setIsLoading(true);
     try {
+      // Deteksi format email → coba login sebagai Admin
+      if (isAdminMode) {
+        const body: Record<string, string> = { email: formData.username, password: formData.password };
+        if (captchaToken) body.captchaToken = captchaToken;
+        const adminRes = await fetch(`${API_BASE_URL}/api/auth/login/admin`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const adminData = await adminRes.json();
+        if (!adminRes.ok) {
+          setError(adminData.message ?? "Email atau password Admin salah");
+          return;
+        }
+        localStorage.setItem("accessToken", adminData.data.accessToken);
+        localStorage.setItem("refreshToken", adminData.data.refreshToken);
+        localStorage.setItem("userRole", "SUPER_ADMIN");
+        localStorage.setItem("userName", adminData.data.user?.email ?? "Admin");
+        localStorage.setItem("loginOrigin", "child");
+        router.push("/admin");
+        return;
+      }
+
+      // Login Anak seperti biasa
       const body: Record<string, string> = { ...formData };
       if (captchaToken) body.captchaToken = captchaToken;
       const res = await fetch(`${API_BASE_URL}/api/auth/login/child`, {
@@ -135,18 +165,20 @@ export function ChildLogin() {
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Username Field */}
+            {/* Username / Email Field */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm">
-                  Username
+                  {isAdminMode ? "Email Admin" : "Username"}
                 </label>
-                <Link
-                  href="/auth/child/forgot-username"
-                  className="font-['Poppins',sans-serif] text-bsi-orange-primary text-xs font-semibold hover:underline"
-                >
-                  Lupa Username?
-                </Link>
+                {!isAdminMode && (
+                  <Link
+                    href="/auth/child/forgot-username"
+                    className="font-['Poppins',sans-serif] text-bsi-orange-primary text-xs font-semibold hover:underline"
+                  >
+                    Lupa Username?
+                  </Link>
+                )}
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -158,11 +190,17 @@ export function ChildLogin() {
                   type="text"
                   value={formData.username}
                   onChange={(e) => handleChange("username", e.target.value)}
-                  placeholder="Masukkan username kamu"
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl font-['Lato',sans-serif] text-base focus:border-bsi-orange-primary focus:outline-none transition-colors text-gray-900 bg-white placeholder:text-gray-400"
+                  placeholder="Username anak atau email admin"
+                  className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl font-['Lato',sans-serif] text-base focus:outline-none transition-colors text-gray-900 bg-white placeholder:text-gray-400 ${isAdminMode ? "border-bsi-teal-primary focus:border-bsi-teal-primary" : "border-gray-200 focus:border-bsi-orange-primary"}`}
                   required
                 />
               </div>
+              {isAdminMode && (
+                <div className="mt-2 flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-bsi-teal-primary" />
+                  <p className="font-['Poppins',sans-serif] text-bsi-teal-primary text-xs font-semibold">Mode Login Admin terdeteksi</p>
+                </div>
+              )}
             </div>
 
             {/* Password Field */}
@@ -211,8 +249,8 @@ export function ChildLogin() {
               </div>
             </div>
 
-            {/* PIN Field */}
-            <div>
+            {/* PIN Field — disembunyikan saat mode Admin */}
+            <div className={isAdminMode ? "hidden" : ""}>
               <label className="block font-['Poppins',sans-serif] font-semibold text-gray-700 text-sm mb-1">
                 PIN
               </label>

@@ -1,5 +1,11 @@
-import { AdminLogin } from "../../adminLogin";
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
-  return <AdminLogin />;
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/auth/parent/login");
+  }, [router]);
+  return null;
 }

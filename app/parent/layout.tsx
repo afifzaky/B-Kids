@@ -54,6 +54,16 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    href: "/parent/limits",
+    label: "Batas Pengeluaran",
+    icon: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+        <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
 ];
 
 interface ParentNotif {
@@ -296,16 +306,8 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto`}
       >
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-[#e0e7e7]">
-          <div className="bg-gradient-to-br from-bsi-teal-primary to-bsi-teal-secondary w-9 h-9 rounded-xl flex items-center justify-center shadow-sm">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-            </svg>
-          </div>
-          <div>
-            <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg leading-tight">B-Kids</span>
-            <p className="font-['Lato',sans-serif] text-gray-400 text-[10px] leading-tight">Portal Orang Tua</p>
-          </div>
+        <div className="flex items-center px-6 py-5 border-b border-[#e0e7e7]">
+          <img src="/logo-bkids.png" alt="B-Kids" className="h-9 w-auto object-contain" />
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">

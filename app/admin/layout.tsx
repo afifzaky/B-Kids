@@ -58,6 +58,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: "/admin/learning",
+    label: "E-Learning",
+    exact: false,
+    icon: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/audit-logs",
     label: "Audit Log",
     exact: false,
@@ -120,7 +130,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const token = localStorage.getItem("accessToken");
     const role = localStorage.getItem("userRole");
     if (!token || role !== "SUPER_ADMIN") {
-      router.push("/auth/admin/login");
+      router.push("/auth/parent/login");
       return;
     }
     setAdminEmail(localStorage.getItem("userName") ?? "Admin");
@@ -158,6 +168,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem("refreshToken") ?? "";
+    const origin = localStorage.getItem("loginOrigin");
     try {
       await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: "POST",
@@ -166,7 +177,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       });
     } catch { /* ignore */ }
     localStorage.clear();
-    router.push("/auth/admin/login");
+    router.push(origin === "child" ? "/auth/child/login" : "/auth/parent/login");
   };
 
   if (!authChecked) {
@@ -202,20 +213,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         } lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-[#bdc9c9]">
-          <div className="bg-gradient-to-br from-bsi-teal-primary to-bsi-teal-secondary w-9 h-9 rounded-xl flex items-center justify-center shadow-sm">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div>
-            <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg leading-tight">
-              B-Kids
-            </span>
-            <p className="font-['Lato',sans-serif] text-gray-400 text-[10px] leading-tight">
-              Admin Panel
-            </p>
-          </div>
+        <div className="flex items-center px-6 py-5 border-b border-[#bdc9c9]">
+          <img src="/logo-bkids.png" alt="B-Kids" className="h-9 w-auto object-contain" />
         </div>
 
         {/* Nav items */}

@@ -70,6 +70,26 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    href: "/child/infaq",
+    label: "Infaq",
+    exact: false,
+    icon: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
+  {
+    href: "/child/learning",
+    label: "E-Learning",
+    exact: false,
+    icon: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+      </svg>
+    ),
+  },
 ];
 
 interface ChildNotif {
@@ -274,20 +294,8 @@ export default function ChildLayout({ children }: { children: React.ReactNode })
         } lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-[#bdc9c9]">
-          <div className="bg-gradient-to-br from-bsi-orange-primary to-bsi-orange-secondary w-9 h-9 rounded-xl flex items-center justify-center shadow-sm">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div>
-            <span className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-lg leading-tight">
-              B-Kids
-            </span>
-            <p className="font-['Lato',sans-serif] text-gray-400 text-[10px] leading-tight">
-              Portal Anak
-            </p>
-          </div>
+        <div className="flex items-center px-6 py-5 border-b border-[#bdc9c9]">
+          <img src="/logo-bkids.png" alt="B-Kids" className="h-9 w-auto object-contain" />
         </div>
 
         {/* Nav items */}
