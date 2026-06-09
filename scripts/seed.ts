@@ -28,6 +28,12 @@ async function main() {
   console.log('🌱 Memulai seed data demo...\n');
 
   // Cleanup urutan penting karena ada foreign key
+  await prisma.learningProgress.deleteMany();
+  await prisma.childXpBalance.deleteMany();
+  await prisma.quizQuestion.deleteMany();
+  await prisma.quiz.deleteMany();
+  await prisma.learningArticle.deleteMany();
+  await prisma.learningModule.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.choreSubmission.deleteMany();
   await prisma.chore.deleteMany();
@@ -40,9 +46,12 @@ async function main() {
   await prisma.voucherRedemption.deleteMany();
   await prisma.familyLink.deleteMany();
   await prisma.childProfile.deleteMany();
+  await prisma.parentLedger.deleteMany();
   await prisma.parentProfile.deleteMany();
   await prisma.voucherCatalog.deleteMany();
   await prisma.infaqInstitutionConfig.deleteMany();
+  await prisma.refreshToken.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
   await prisma.user.deleteMany();
 
   console.log('🗑️  Data lama dihapus');

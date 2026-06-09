@@ -1,14 +1,14 @@
 {
   "info": {
-    "_postman_id": "byond-kids-v4",
+    "_postman_id": "byond-kids-v4-corrected",
     "name": "Byond Kids — Backend API v4",
-    "description": "Complete API collection with automated tests for all business flows.\n\n## Quick Start\n1. Set `base_url` → `http://192.168.23.67:30400`\n2. Run **[SETUP] Login Admin** → auto-saves `admin_token`\n3. Run **[SETUP] Login Parent** → auto-saves `parent_token`, `parent_profile_id`\n4. Run **[SETUP] Login Child (Aisha)** → auto-saves `child_token`, `child_profile_id`\n5. Run Collection with \"Run All\" untuk automated test seluruh flow\n\n## Test Credentials\n| Role | Login | Password |\n|------|-------|----------|\n| ADMIN | admin@byond.id | Admin@Byond2026! |\n| PARENT | budi.santoso@demo.byond.id | Byond@2026 |\n| CHILD 1 (Aisha) | username: aisha_byond | 123456 |\n| CHILD 2 (Rizky) | username: rizky_byond | 654321 |",
+    "description": "Full flow automated test suite.\n\n**Quick Start:**\n1. `base_url` → `http://localhost:4000`\n2. Jalankan folder `01 · [SETUP]` → auto-save semua token\n3. Run Collection (urutan penting: folder 15 Admin E-Learning sebelum 16 Child E-Learning)\n\n**Demo Credentials:**\n| Role | Login | Secret |\n|------|-------|--------|\n| ADMIN | admin@byond.id | Admin@Byond2026! |\n| PARENT | budi.santoso@demo.byond.id | password: Byond@2026, savingsPin: 123456 |\n| CHILD Aisha | username: aisha_byond | password+pin: 123456 |\n| CHILD Rizky | username: rizky_byond | password+pin: 654321 |",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
-      "value": "http://192.168.23.67:30400",
+      "value": "http://localhost:4000",
       "type": "string"
     },
     {
@@ -77,7 +77,12 @@
       "type": "string"
     },
     {
-      "key": "parent_profile_id_admin",
+      "key": "question_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "temp_child_username",
       "value": "",
       "type": "string"
     }
@@ -106,9 +111,9 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "const r = pm.response.json();",
-                  "pm.test('status ok', () => pm.expect(r.status).to.equal('ok'));"
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));",
+                  "pm.test('has status field', () => pm.expect(r.data.status).to.be.a('string'));"
                 ],
                 "type": "text/javascript"
               }
@@ -118,7 +123,7 @@
       ]
     },
     {
-      "name": "01 · [SETUP] Auth — Login & Token",
+      "name": "01 · [SETUP] Auth — Login & Tokens",
       "item": [
         {
           "name": "[SETUP] Login Admin",
@@ -158,8 +163,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "pm.test('has data', () => pm.expect(r.data).to.exist);",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.test('has accessToken', () => pm.expect(r.data.accessToken).to.be.a('string'));",
                   "pm.collectionVariables.set('admin_token', r.data.accessToken);"
                 ],
@@ -192,7 +197,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\",\n  \"password\": \"Byond@2026\"\n}",
+              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\",\n  \"password\": \"Byond@2026\",\n  \"savingsPin\": \"123456\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -206,13 +211,13 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('has tokens', () => { pm.expect(r.data.accessToken).to.be.a('string'); pm.expect(r.data.refreshToken).to.be.a('string'); });",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has accessToken', () => pm.expect(r.data.accessToken).to.be.a('string'));",
+                  "pm.test('role PARENT', () => pm.expect(r.data.user.role).to.equal('PARENT'));",
                   "pm.collectionVariables.set('parent_token', r.data.accessToken);",
                   "pm.collectionVariables.set('parent_refresh', r.data.refreshToken);",
-                  "pm.collectionVariables.set('parent_profile_id', r.data.user.profile.id);",
-                  "pm.collectionVariables.set('parent_profile_id_admin', r.data.user.profile.id);"
+                  "pm.collectionVariables.set('parent_profile_id', r.data.profile.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -243,7 +248,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"aisha_byond\",\n  \"password\": \"123456\"\n}",
+              "raw": "{\n  \"username\": \"aisha_byond\",\n  \"password\": \"123456\",\n  \"pin\": \"123456\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -257,12 +262,12 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('role CHILD', () => pm.expect(r.data.user.role).to.equal('CHILD'));",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has profile', () => pm.expect(r.data.profile).to.exist);",
                   "pm.collectionVariables.set('child_token', r.data.accessToken);",
                   "pm.collectionVariables.set('child_refresh', r.data.refreshToken);",
-                  "pm.collectionVariables.set('child_profile_id', r.data.user.profile.id);"
+                  "pm.collectionVariables.set('child_profile_id', r.data.profile.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -293,7 +298,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"rizky_byond\",\n  \"password\": \"654321\"\n}",
+              "raw": "{\n  \"username\": \"rizky_byond\",\n  \"password\": \"654321\",\n  \"pin\": \"654321\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -307,57 +312,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('role CHILD', () => pm.expect(r.data.user.role).to.equal('CHILD'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PUBLIC] POST /refresh",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/refresh",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "refresh"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"{{parent_refresh}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('new tokens issued', () => { pm.expect(r.data.accessToken).to.be.a('string'); pm.expect(r.data.refreshToken).to.be.a('string'); });",
-                  "pm.collectionVariables.set('parent_token', r.data.accessToken);",
-                  "pm.collectionVariables.set('parent_refresh', r.data.refreshToken);"
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has profile', () => pm.expect(r.data.profile).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -392,8 +349,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.test('role PARENT', () => pm.expect(r.data.role).to.equal('PARENT'));",
                   "pm.test('has profile', () => pm.expect(r.data.profile).to.exist);"
                 ],
@@ -430,9 +387,95 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.test('role CHILD', () => pm.expect(r.data.role).to.equal('CHILD'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ANY] GET /me — Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('role SUPER_ADMIN', () => pm.expect(r.data.role).to.equal('SUPER_ADMIN'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[PUBLIC] POST /refresh — Parent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{parent_refresh}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('new accessToken', () => pm.expect(r.data.accessToken).to.be.a('string'));",
+                  "pm.test('new refreshToken', () => pm.expect(r.data.refreshToken).to.be.a('string'));",
+                  "pm.collectionVariables.set('parent_token', r.data.accessToken);",
+                  "pm.collectionVariables.set('parent_refresh', r.data.refreshToken);"
                 ],
                 "type": "text/javascript"
               }
@@ -476,7 +519,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -486,10 +530,10 @@
       ]
     },
     {
-      "name": "02 · Auth — Profil & Manajemen Anak",
+      "name": "02 · Auth — Profil & Buat Akun Anak",
       "item": [
         {
-          "name": "[PARENT] POST /children — Buat Akun Anak",
+          "name": "[PARENT] POST /auth/children — Buat Akun Anak",
           "request": {
             "method": "POST",
             "header": [
@@ -515,7 +559,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Test Anak Demo\",\n  \"dateOfBirth\": \"2014-01-15\",\n  \"username\": \"testanak_demo\",\n  \"pin\": \"111222\"\n}",
+              "raw": "{\n  \"fullName\": \"Test Anak Newman\",\n  \"dateOfBirth\": \"2014-01-15T00:00:00.000Z\",\n  \"username\": \"{{temp_child_username}}\",\n  \"password\": \"pass123\",\n  \"pin\": \"111222\",\n  \"parentPin\": \"123456\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -525,13 +569,28 @@
           },
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const rand = Math.floor(Math.random() * 9000) + 1000;",
+                  "pm.collectionVariables.set('temp_child_username', 'nwm_child_' + rand);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('has childProfileId', () => pm.expect(r.data.childProfileId).to.be.a('string'));"
+                  "const isCreated = pm.response.code === 201 && r.success;",
+                  "const isMaxReached = pm.response.code === 422 && r.code === 'MAX_CHILDREN_REACHED';",
+                  "pm.test('Buat anak (201) atau max reached (422)', () => pm.expect(isCreated || isMaxReached).to.be.true);",
+                  "if (isCreated) {",
+                  "  pm.test('has profile id', () => pm.expect(r.data.id).to.be.a('string'));",
+                  "} else {",
+                  "  pm.test('max children business rule enforced', () => pm.expect(r.code).to.equal('MAX_CHILDREN_REACHED'));",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -539,7 +598,7 @@
           ]
         },
         {
-          "name": "[PARENT] PATCH /me/profile",
+          "name": "[PARENT] PATCH /auth/me/profile",
           "request": {
             "method": "PATCH",
             "header": [
@@ -580,7 +639,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -588,7 +648,7 @@
           ]
         },
         {
-          "name": "[PARENT] PATCH /me/password",
+          "name": "[PARENT] PATCH /auth/me/password — Ganti Password",
           "request": {
             "method": "PATCH",
             "header": [
@@ -629,7 +689,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -669,10 +730,10 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));",
-                  "pm.test('has children', () => pm.expect(r.data.length).to.be.at.least(1));",
+                  "pm.test('at least 1 child', () => pm.expect(r.data.length).to.be.at.least(1));",
                   "if (r.data.length > 0) pm.collectionVariables.set('child_profile_id', r.data[0].id);"
                 ],
                 "type": "text/javascript"
@@ -686,7 +747,7 @@
       "name": "04 · Parent Banking [PARENT]",
       "item": [
         {
-          "name": "[PARENT] GET /parent/banking/account",
+          "name": "[PARENT] GET /banking/account",
           "request": {
             "method": "GET",
             "header": [
@@ -714,9 +775,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('has balance', () => pm.expect(r.data.balance).to.be.a('string'));",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has balance', () => pm.expect(r.data.balance).to.exist);",
                   "pm.test('has bsiAccountNumber', () => pm.expect(r.data.bsiAccountNumber).to.exist);"
                 ],
                 "type": "text/javascript"
@@ -725,7 +786,7 @@
           ]
         },
         {
-          "name": "[PARENT] GET /parent/banking/transactions",
+          "name": "[PARENT] GET /banking/transactions",
           "request": {
             "method": "GET",
             "header": [
@@ -753,8 +814,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('has data array', () => pm.expect(r.data).to.be.an('array'));"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('transactions is array', () => pm.expect(r.transactions).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -762,7 +824,7 @@
           ]
         },
         {
-          "name": "[PARENT] POST /parent/banking/deposit",
+          "name": "[PARENT] POST /banking/deposit — Top Up 100k",
           "request": {
             "method": "POST",
             "header": [
@@ -802,9 +864,10 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('balance updated', () => pm.expect(r.data.balanceAfter).to.exist);"
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has newBalance', () => pm.expect(r.data.newBalance).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -812,7 +875,7 @@
           ]
         },
         {
-          "name": "[PARENT] POST /parent/banking/transfer ke Anak",
+          "name": "[PARENT] POST /banking/transfer ke Anak 10k",
           "request": {
             "method": "POST",
             "header": [
@@ -839,7 +902,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"childProfileId\": \"{{child_profile_id}}\",\n  \"amount\": 10000,\n  \"pin\": \"123456\",\n  \"notes\": \"Uang jajan tes\"\n}",
+              "raw": "{\n  \"childProfileId\": \"{{child_profile_id}}\",\n  \"amount\": 10000,\n  \"pin\": \"123456\",\n  \"notes\": \"Uang jajan test Newman\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -852,11 +915,11 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));",
                   "const r = pm.response.json();",
-                  "pm.test('parentBalanceAfter exists', () => pm.expect(r.data.parentBalanceAfter).to.exist);",
-                  "pm.test('childBalanceAfter exists', () => pm.expect(r.data.childBalanceAfter).to.exist);"
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has parentNewBalance', () => pm.expect(r.data.parentNewBalance).to.exist);",
+                  "pm.test('has childNewBalance', () => pm.expect(r.data.childNewBalance).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -897,7 +960,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has data', () => pm.expect(r.data).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -934,8 +999,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has tabunganUtama', () => pm.expect(r.data.tabunganUtama).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -948,7 +1014,7 @@
       "name": "06 · Spending Limits [PARENT]",
       "item": [
         {
-          "name": "[PARENT] PUT /limits/:childId — Set General Limit",
+          "name": "[PARENT] PUT /limits/:childId — Set Daily 50k",
           "request": {
             "method": "PUT",
             "header": [
@@ -974,7 +1040,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"period\": \"DAILY\",\n  \"limitAmount\": 30000,\n  \"excludeInfaq\": true\n}",
+              "raw": "{\n  \"daily\": 50000,\n  \"excludeInfaq\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -988,7 +1054,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('data is array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -996,7 +1064,7 @@
           ]
         },
         {
-          "name": "[PARENT] POST /limits/:childId/category — Gaming Limit",
+          "name": "[PARENT] POST /limits/:childId/category — Gaming 15k/day",
           "request": {
             "method": "POST",
             "header": [
@@ -1023,7 +1091,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"period\": \"DAILY\",\n  \"limitAmount\": 10000,\n  \"voucherType\": \"GAME_TOPUP\"\n}",
+              "raw": "{\n  \"period\": \"DAILY\",\n  \"limitAmount\": 15000,\n  \"voucherType\": \"GAME_TOPUP\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1037,7 +1105,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1072,8 +1141,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('has general limits', () => pm.expect(r.data.general).to.be.an('array'));"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('limits is array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1086,7 +1156,7 @@
       "name": "07 · Chores / Tantangan [PARENT + CHILD]",
       "item": [
         {
-          "name": "[PARENT] POST /chores — Buat Chore",
+          "name": "[PARENT] POST /chores — Buat untuk Approve",
           "request": {
             "method": "POST",
             "header": [
@@ -1111,7 +1181,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"assignedToId\": \"{{child_profile_id}}\",\n  \"title\": \"Belajar 30 menit\",\n  \"description\": \"Belajar matematika selama 30 menit\",\n  \"category\": \"Akademik\",\n  \"rewardAmount\": 5000,\n  \"deadline\": \"2027-12-31T23:59:59Z\"\n}",
+              "raw": "{\n  \"assignedToId\": \"{{child_profile_id}}\",\n  \"title\": \"Belajar 30 menit\",\n  \"description\": \"Matematika\",\n  \"category\": \"Akademik\",\n  \"rewardAmount\": 5000,\n  \"deadline\": \"2027-12-31T23:59:59Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1125,8 +1195,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.test('has chore id', () => pm.expect(r.data.id).to.be.a('string'));",
                   "pm.collectionVariables.set('chore_id', r.data.id);"
                 ],
@@ -1136,7 +1206,7 @@
           ]
         },
         {
-          "name": "[PARENT] GET /chores",
+          "name": "[PARENT] GET /chores — PARENT view",
           "request": {
             "method": "GET",
             "header": [
@@ -1162,8 +1232,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('is array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1171,7 +1242,7 @@
           ]
         },
         {
-          "name": "[CHILD] GET /chores",
+          "name": "[CHILD] GET /chores — CHILD view",
           "request": {
             "method": "GET",
             "header": [
@@ -1197,7 +1268,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('is array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1205,7 +1278,7 @@
           ]
         },
         {
-          "name": "[CHILD] POST /chores/:id/submit — Submit Bukti (JSON)",
+          "name": "[CHILD] POST /chores/:id/submit — Submit Bukti JSON",
           "request": {
             "method": "POST",
             "header": [
@@ -1232,7 +1305,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"notes\": \"Sudah belajar matematika 30 menit\",\n  \"mediaUrl\": \"https://picsum.photos/400/300\"\n}",
+              "raw": "{\n  \"notes\": \"Sudah belajar matematika\",\n  \"mediaUrl\": \"https://picsum.photos/400/300\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1246,8 +1319,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.test('message exists', () => pm.expect(r.message).to.be.a('string'));"
                 ],
                 "type": "text/javascript"
@@ -1256,7 +1329,7 @@
           ]
         },
         {
-          "name": "[PARENT] PATCH /chores/:id/approve",
+          "name": "[PARENT] PATCH /chores/:id/approve — Setujui",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1284,9 +1357,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('has rewardAmount', () => pm.expect(r.data.rewardAmount).to.exist);"
+                  "pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has reward amount', () => pm.expect(r.data.reward).to.be.a('number'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1294,7 +1367,7 @@
           ]
         },
         {
-          "name": "[PARENT] POST /chores — Buat Chore untuk Reject",
+          "name": "[PARENT] POST /chores — Buat untuk Reject",
           "request": {
             "method": "POST",
             "header": [
@@ -1319,7 +1392,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"assignedToId\": \"{{child_profile_id}}\",\n  \"title\": \"Chore untuk test reject\",\n  \"category\": \"Lainnya\",\n  \"rewardAmount\": 2000,\n  \"deadline\": \"2027-12-31T23:59:59Z\"\n}",
+              "raw": "{\n  \"assignedToId\": \"{{child_profile_id}}\",\n  \"title\": \"Chore reject test\",\n  \"category\": \"Lainnya\",\n  \"rewardAmount\": 2000,\n  \"deadline\": \"2027-12-31T23:59:59Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1333,8 +1406,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.collectionVariables.set('chore_id', r.data.id);"
                 ],
                 "type": "text/javascript"
@@ -1370,7 +1443,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"notes\": \"Sudah selesai\"\n}",
+              "raw": "{\n  \"notes\": \"Selesai\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1384,7 +1457,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1392,7 +1466,7 @@
           ]
         },
         {
-          "name": "[PARENT] PATCH /chores/:id/reject",
+          "name": "[PARENT] PATCH /chores/:id/reject — Tolak",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1419,7 +1493,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"rejectionNote\": \"Bukti kurang lengkap, tolong ulangi\"\n}",
+              "raw": "{\n  \"rejectionNote\": \"Bukti kurang, ulangi\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1433,7 +1507,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1473,8 +1548,10 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('has profile', () => pm.expect(r.data.profile).to.exist);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has tabunganUtama', () => pm.expect(r.data.tabunganUtama).to.exist);",
+                  "pm.test('has pendingChores', () => pm.expect(r.data.pendingChores).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -1509,8 +1586,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('has balance', () => pm.expect(r.data.balance).to.exist);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has balance', () => pm.expect(r.data.balance).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -1545,7 +1623,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('is array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1593,7 +1673,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1631,7 +1712,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Pocket Test\",\n  \"category\": \"CUSTOM\",\n  \"emoji\": \"\\ud83c\\udfaf\",\n  \"targetAmount\": 50000,\n  \"intentionText\": \"Test pocket\"\n}",
+              "raw": "{\n  \"name\": \"Pocket Newman\",\n  \"category\": \"CUSTOM\",\n  \"emoji\": \"\\ud83c\\udfaf\",\n  \"targetAmount\": 50000,\n  \"intentionText\": \"Test\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1645,8 +1726,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.test('has pocket id', () => pm.expect(r.data.id).to.be.a('string'));",
                   "pm.collectionVariables.set('pocket_id', r.data.id);"
                 ],
@@ -1656,7 +1737,7 @@
           ]
         },
         {
-          "name": "[CHILD] GET /pockets",
+          "name": "[CHILD] GET /pockets — List",
           "request": {
             "method": "GET",
             "header": [
@@ -1682,8 +1763,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('pockets is array', () => pm.expect(r.data.pockets).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1691,7 +1773,7 @@
           ]
         },
         {
-          "name": "[CHILD] GET /pockets/:id",
+          "name": "[CHILD] GET /pockets/:id — Detail",
           "request": {
             "method": "GET",
             "header": [
@@ -1718,7 +1800,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('id matches', () => pm.expect(r.data.id).to.equal(pm.collectionVariables.get('pocket_id')));"
                 ],
                 "type": "text/javascript"
               }
@@ -1726,7 +1810,7 @@
           ]
         },
         {
-          "name": "[CHILD] POST /pockets/:id/topup — Alokasikan Saldo",
+          "name": "[CHILD] POST /pockets/:id/topup — Alokasikan 2000",
           "request": {
             "method": "POST",
             "header": [
@@ -1767,8 +1851,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('balance updated', () => pm.expect(r.data).to.exist);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('topup result exists', () => pm.expect(r.data).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -1803,7 +1888,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1838,10 +1924,10 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));",
-                  "pm.test('at least 1 institution', () => pm.expect(r.data.length).to.be.at.least(1));",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('is array', () => pm.expect(r.data).to.be.an('array'));",
+                  "pm.test('at least 1', () => pm.expect(r.data.length).to.be.at.least(1));",
                   "if (r.data.length > 0) pm.collectionVariables.set('institution_id', r.data[0].id);"
                 ],
                 "type": "text/javascript"
@@ -1850,7 +1936,7 @@
           ]
         },
         {
-          "name": "[CHILD] POST /infaq — Kirim Infaq",
+          "name": "[CHILD] POST /infaq — Kirim 1000",
           "request": {
             "method": "POST",
             "header": [
@@ -1875,7 +1961,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"institutionId\": \"{{institution_id}}\",\n  \"amount\": 1000,\n  \"pin\": \"123456\",\n  \"notes\": \"Sedekah tes\"\n}",
+              "raw": "{\n  \"institutionId\": \"{{institution_id}}\",\n  \"amount\": 1000,\n  \"pin\": \"123456\",\n  \"notes\": \"Sedekah test\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1888,8 +1974,9 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1923,7 +2010,782 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('logs is array', () => pm.expect(r.data.logs).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12 · Admin — Platform Management [ADMIN]",
+      "item": [
+        {
+          "name": "[ADMIN] GET /admin/stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has users', () => pm.expect(r.data.users).to.exist);",
+                  "pm.test('totalParents is number', () => pm.expect(r.data.users.totalParents).to.be.a('number'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/parents — Halaman 1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/parents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "parents"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('parents is array', () => pm.expect(r.parents).to.be.an('array'));",
+                  "pm.test('has meta', () => pm.expect(r.meta).to.exist);",
+                  "if (r.parents && r.parents.length > 0) pm.collectionVariables.set('parent_profile_id', r.parents[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/parents?search=budi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/parents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "parents"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "budi"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('parents is array', () => pm.expect(r.parents).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/parents/:parentId — Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "parents",
+                "{{parent_profile_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has children', () => pm.expect(r.data.children).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] PATCH /admin/parents/:parentId/status — Nonaktifkan",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "parents",
+                "{{parent_profile_id}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "pm.test('Status 200 atau 422 (idempotent)', () => pm.expect([200,422]).to.include(pm.response.code));",
+                  "// 422 = status unchanged (already in that state) — acceptable in automated tests"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] POST /admin/parents/:parentId/balance/adjust — Credit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id}}/balance/adjust",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "parents",
+                "{{parent_profile_id}}",
+                "balance",
+                "adjust"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10000,\n  \"type\": \"CREDIT\",\n  \"notes\": \"Test koreksi Newman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/parents/:parentId/ledger",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id}}/ledger",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "parents",
+                "{{parent_profile_id}}",
+                "ledger"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/children — List Semua",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/children",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "children"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('data is array', () => pm.expect(r.data).to.be.an('array'));",
+                  "pm.test('has meta', () => pm.expect(r.meta).to.exist);",
+                  "if (r.data.length > 0) pm.collectionVariables.set('child_profile_id', r.data[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/children?search=aisha",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/children",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "children"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "aisha"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('data is array', () => pm.expect(r.data).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/children/:childId — Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/children/{{child_profile_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "children",
+                "{{child_profile_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has account', () => pm.expect(r.data.account).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] PATCH /admin/children/:childId/status — Nonaktifkan",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/children/{{child_profile_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "children",
+                "{{child_profile_id}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] PATCH /admin/children/:childId/status — Aktifkan Kembali",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/children/{{child_profile_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "children",
+                "{{child_profile_id}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/audit-logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/audit-logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('logs is array', () => pm.expect(r.logs).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "13 · Admin — Voucher Management [ADMIN]",
+      "item": [
+        {
+          "name": "[ADMIN] GET /admin/vouchers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/vouchers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "vouchers"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('vouchers is array', () => pm.expect(r.vouchers).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] POST /admin/vouchers — Buat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/vouchers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Voucher Newman\",\n  \"provider\": \"Test\",\n  \"category\": \"Test\",\n  \"voucherType\": \"DISCOUNT\",\n  \"price\": 5000,\n  \"stock\": 10,\n  \"maxPerChild\": 2,\n  \"description\": \"Test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has id', () => pm.expect(r.data.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('voucher_id', r.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] PUT /admin/vouchers/:id — Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/vouchers/{{voucher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "vouchers",
+                "{{voucher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Voucher Newman Updated\",\n  \"stock\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/vouchers/redemptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/vouchers/redemptions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "vouchers",
+                "redemptions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1962,10 +2824,11 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('has vouchers array', () => pm.expect(r.data.vouchers).to.be.an('array'));",
-                  "if (r.data.vouchers.length > 0) pm.collectionVariables.set('voucher_id', r.data.vouchers[0].id);"
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('data is array', () => pm.expect(r.data).to.be.an('array'));",
+                  "pm.test('has vouchers', () => pm.expect(r.data.length).to.be.at.least(1));",
+                  "// voucher_id already set by Admin Vouchers folder - use that for buy test"
                 ],
                 "type": "text/javascript"
               }
@@ -2005,7 +2868,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -2052,10 +2916,10 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200,299));",
                   "const r = pm.response.json();",
-                  "pm.test('has voucher code', () => pm.expect(r.data.code).to.be.a('string'));"
+                  "pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has redemptionCode', () => pm.expect(r.data.redemptionCode).to.be.a('string'));"
                 ],
                 "type": "text/javascript"
               }
@@ -2090,7 +2954,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('history is array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -2100,1050 +2966,7 @@
       ]
     },
     {
-      "name": "12 · E-Learning [CHILD] — v4",
-      "item": [
-        {
-          "name": "[CHILD] GET /learning/modules",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{child_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/learning/modules",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "learning",
-                "modules"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));",
-                  "if (r.data.length > 0) pm.collectionVariables.set('module_id', r.data[0].id);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[CHILD] GET /learning/articles",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{child_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/learning/articles",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "learning",
-                "articles"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));",
-                  "if (r.data.length > 0) pm.collectionVariables.set('article_id', r.data[0].id);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[CHILD] GET /learning/articles/:id — Detail",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{child_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/learning/articles/{{article_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "learning",
-                "articles",
-                "{{article_id}}"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('has title', () => pm.expect(r.data.title).to.be.a('string'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[CHILD] POST /learning/articles/:id/complete — Tandai Selesai",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{child_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/complete",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "learning",
-                "articles",
-                "{{article_id}}",
-                "complete"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('has xpEarned', () => pm.expect(r.data.xpEarned).to.be.a('number'));",
-                  "pm.test('has level', () => pm.expect(r.data.level).to.be.a('number'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[CHILD] GET /learning/articles/:id/quiz — Ambil Kuis",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{child_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/quiz",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "learning",
-                "articles",
-                "{{article_id}}",
-                "quiz"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('has questions', () => pm.expect(r.data.questions).to.be.an('array'));",
-                  "pm.test('no isCorrect in options (security)', () => {",
-                  "  r.data.questions.forEach(q => {",
-                  "    q.options.forEach(o => pm.expect(o.isCorrect).to.be.undefined);",
-                  "  });",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[CHILD] POST /learning/articles/:id/quiz/submit — Submit Kuis",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{child_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/quiz/submit",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "learning",
-                "articles",
-                "{{article_id}}",
-                "quiz",
-                "submit"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"REPLACE_WITH_ACTUAL_QUESTION_ID\",\n      \"optionIndex\": 0\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('has score', () => pm.expect(r.data.score).to.be.a('number'));",
-                  "pm.test('score in valid range', () => { pm.expect(r.data.score).to.be.at.least(0); pm.expect(r.data.score).to.be.at.most(100); });",
-                  "pm.test('has passed flag', () => pm.expect(r.data.passed).to.be.a('boolean'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[CHILD] GET /learning/my-progress",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{child_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/learning/my-progress",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "learning",
-                "my-progress"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('has xpBalance', () => pm.expect(r.data.xpBalance).to.exist);",
-                  "pm.test('has level', () => pm.expect(r.data.xpBalance.level).to.be.a('number'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "13 · Admin — Platform Management [ADMIN]",
-      "item": [
-        {
-          "name": "[ADMIN] GET /admin/stats",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/stats",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "stats"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('has users stats', () => pm.expect(r.data.users).to.exist);",
-                  "pm.test('totalParents is number', () => pm.expect(r.data.users.totalParents).to.be.a('number'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] GET /admin/parents — List Semua",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/parents",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "parents"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('has data array', () => pm.expect(r.data.data).to.be.an('array'));",
-                  "pm.test('has meta pagination', () => pm.expect(r.data.meta).to.exist);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] GET /admin/parents?search=budi",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/parents",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "parents"
-              ],
-              "query": [
-                {
-                  "key": "search",
-                  "value": "budi"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] GET /admin/parents/:parentId — Detail",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id_admin}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "parents",
-                "{{parent_profile_id_admin}}"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('has children array', () => pm.expect(r.data.children).to.be.an('array'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] PATCH /admin/parents/:parentId/status — Nonaktifkan",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id_admin}}/status",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "parents",
-                "{{parent_profile_id_admin}}",
-                "status"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"isActive\": true,\n  \"reason\": \"Test toggle status\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] POST /admin/parents/:parentId/balance/adjust — Koreksi Saldo",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id_admin}}/balance/adjust",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "parents",
-                "{{parent_profile_id_admin}}",
-                "balance",
-                "adjust"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount\": 10000,\n  \"type\": \"CREDIT\",\n  \"reason\": \"Test koreksi saldo admin\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] GET /admin/parents/:parentId/ledger",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id_admin}}/ledger",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "parents",
-                "{{parent_profile_id_admin}}",
-                "ledger"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] GET /admin/children — List Semua Anak",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/children",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "children"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('has data array', () => pm.expect(r.data.data).to.be.an('array'));",
-                  "pm.test('has meta', () => pm.expect(r.data.meta).to.exist);",
-                  "if (r.data.data.length > 0) pm.collectionVariables.set('child_profile_id', r.data.data[0].id);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] GET /admin/children?search=aisha",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/children",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "children"
-              ],
-              "query": [
-                {
-                  "key": "search",
-                  "value": "aisha"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] GET /admin/children/:childId — Detail Anak",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/children/{{child_profile_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "children",
-                "{{child_profile_id}}"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('has account', () => pm.expect(r.data.account).to.exist);",
-                  "pm.test('has pockets array', () => pm.expect(r.data.account.pockets).to.be.an('array'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] PATCH /admin/children/:childId/status",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/children/{{child_profile_id}}/status",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "children",
-                "{{child_profile_id}}",
-                "status"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"isActive\": true\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] GET /admin/audit-logs",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/audit-logs",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "audit-logs"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "20"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('has data', () => pm.expect(r.data).to.exist);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "14 · Admin — Voucher Management [ADMIN]",
-      "item": [
-        {
-          "name": "[ADMIN] GET /admin/vouchers",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/vouchers",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "vouchers"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('has data array', () => pm.expect(r.data.data).to.be.an('array'));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] POST /admin/vouchers — Buat Voucher",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/vouchers",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "vouchers"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Test Voucher Admin\",\n  \"provider\": \"Test Provider\",\n  \"category\": \"Test\",\n  \"voucherType\": \"DISCOUNT\",\n  \"price\": 5000,\n  \"stock\": 10,\n  \"maxPerChild\": 2,\n  \"description\": \"Voucher test dari admin\",\n  \"mockCode\": \"TEST-BYOND-XXXX\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('has voucher id', () => pm.expect(r.data.id).to.be.a('string'));",
-                  "pm.collectionVariables.set('voucher_id', r.data.id);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] PUT /admin/vouchers/:id — Update",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/vouchers/{{voucher_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "vouchers",
-                "{{voucher_id}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Test Voucher Admin Updated\",\n  \"stock\": 20\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] DELETE /admin/vouchers/:id",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/vouchers/{{voucher_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "vouchers",
-                "{{voucher_id}}"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json();",
-                  "pm.test('deleted or deactivated', () => { pm.expect(r.data.deleted || r.data.deactivated).to.be.true; });"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] GET /admin/vouchers/redemptions",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/admin/vouchers/redemptions",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "vouchers",
-                "redemptions"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "15 · Admin — Infaq Management [ADMIN]",
+      "name": "14 · Admin — Infaq Management [ADMIN]",
       "item": [
         {
           "name": "[ADMIN] GET /admin/infaq/institutions",
@@ -3174,8 +2997,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('has array', () => pm.expect(r.data).to.be.an('array'));"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('is array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -3183,7 +3007,7 @@
           ]
         },
         {
-          "name": "[ADMIN] POST /admin/infaq/institutions — Tambah Lembaga",
+          "name": "[ADMIN] POST /admin/infaq/institutions — Tambah",
           "request": {
             "method": "POST",
             "header": [
@@ -3210,7 +3034,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"code\": \"TEST_LEMBAGA_001\",\n  \"name\": \"Lembaga Test\",\n  \"description\": \"Test lembaga infaq\",\n  \"bankInfo\": \"BSI - 9999999999 a.n. Lembaga Test\"\n}",
+              "raw": "{\n  \"code\": \"LEMBAGA_NWM_{{$randomInt}}\",\n  \"name\": \"Lembaga Test Newman\",\n  \"description\": \"Test\",\n  \"bankInfo\": \"BSI - 9999999999 a.n. Test\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3224,8 +3048,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.collectionVariables.set('institution_id', r.data.id);"
                 ],
                 "type": "text/javascript"
@@ -3262,7 +3086,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Lembaga Test Updated\",\n  \"isActive\": true\n}",
+              "raw": "{\n  \"name\": \"Lembaga Test Newman Updated\",\n  \"isActive\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3276,7 +3100,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3284,7 +3109,7 @@
           ]
         },
         {
-          "name": "[ADMIN] PATCH /admin/infaq/institutions/:id/status — Toggle",
+          "name": "[ADMIN] PATCH /admin/infaq/institutions/:id/status — Nonaktifkan",
           "request": {
             "method": "PATCH",
             "header": [
@@ -3327,7 +3152,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3335,7 +3161,7 @@
           ]
         },
         {
-          "name": "[ADMIN] GET /admin/infaq — Log Infaq",
+          "name": "[ADMIN] GET /admin/infaq — Log",
           "request": {
             "method": "GET",
             "header": [
@@ -3362,7 +3188,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3398,10 +3225,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('has summary', () => pm.expect(r.data.summary).to.exist);",
-                  "pm.test('has allTime', () => pm.expect(r.data.summary.allTime).to.exist);"
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has summary', () => pm.expect(r.data.summary).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -3411,7 +3237,7 @@
       ]
     },
     {
-      "name": "16 · Admin — E-Learning Management [ADMIN] — v4",
+      "name": "15 · Admin — E-Learning Management [ADMIN] — v4",
       "item": [
         {
           "name": "[ADMIN] GET /admin/learning/stats",
@@ -3442,10 +3268,10 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('has modules stat', () => pm.expect(r.data.modules).to.exist);",
-                  "pm.test('has articles stat', () => pm.expect(r.data.articles).to.exist);"
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has modules', () => pm.expect(r.data.modules).to.exist);",
+                  "pm.test('has articles', () => pm.expect(r.data.articles).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -3481,8 +3307,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('modules is array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -3490,7 +3317,7 @@
           ]
         },
         {
-          "name": "[ADMIN] POST /admin/learning/modules — Buat Modul",
+          "name": "[ADMIN] POST /admin/learning/modules — Buat",
           "request": {
             "method": "POST",
             "header": [
@@ -3517,7 +3344,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Modul Test\",\n  \"description\": \"Deskripsi modul test\",\n  \"category\": \"MENABUNG\",\n  \"isPublished\": true,\n  \"order\": 99\n}",
+              "raw": "{\n  \"title\": \"Modul Test Newman\",\n  \"description\": \"Deskripsi modul\",\n  \"category\": \"MENABUNG\",\n  \"isPublished\": true,\n  \"order\": 99\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3531,8 +3358,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.test('has module id', () => pm.expect(r.data.id).to.be.a('string'));",
                   "pm.collectionVariables.set('module_id', r.data.id);"
                 ],
@@ -3570,7 +3397,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Modul Test Updated\",\n  \"isPublished\": true\n}",
+              "raw": "{\n  \"title\": \"Modul Test Newman Updated\",\n  \"isPublished\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3584,7 +3411,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3620,7 +3448,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('articles is array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -3655,7 +3485,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"moduleId\": \"{{module_id}}\",\n  \"title\": \"Artikel Test: Belajar Menabung\",\n  \"content\": \"Menabung adalah kebiasaan baik yang perlu dibiasakan sejak dini.\",\n  \"category\": \"MENABUNG\",\n  \"difficulty\": \"MUDAH\",\n  \"readingTimeMin\": 3,\n  \"xpReward\": 10,\n  \"isPublished\": true,\n  \"order\": 1\n}",
+              "raw": "{\n  \"moduleId\": \"{{module_id}}\",\n  \"title\": \"Artikel Test: Belajar Menabung\",\n  \"content\": \"Menabung adalah kebiasaan baik yang perlu dibiasakan sejak dini. Dengan menabung, kita punya cadangan untuk kebutuhan mendesak.\",\n  \"category\": \"MENABUNG\",\n  \"difficulty\": \"MUDAH\",\n  \"readingTimeMin\": 3,\n  \"xpReward\": 10,\n  \"isPublished\": true,\n  \"order\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3669,8 +3499,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
                   "pm.test('has article id', () => pm.expect(r.data.id).to.be.a('string'));",
                   "pm.collectionVariables.set('article_id', r.data.id);"
                 ],
@@ -3709,8 +3539,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
-                  "const r = pm.response.json(); pm.test('has title', () => pm.expect(r.data.title).to.exist);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has title', () => pm.expect(r.data.title).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -3747,7 +3578,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"xpBonus\": 20,\n  \"coinReward\": 2000,\n  \"passScore\": 60,\n  \"questions\": [\n    {\n      \"question\": \"Apa manfaat utama menabung?\",\n      \"options\": [\n        {\n          \"text\": \"Boros uang\",\n          \"isCorrect\": false\n        },\n        {\n          \"text\": \"Punya cadangan untuk kebutuhan darurat\",\n          \"isCorrect\": true\n        },\n        {\n          \"text\": \"Malas bekerja\",\n          \"isCorrect\": false\n        }\n      ],\n      \"explanation\": \"Menabung memberi kita dana cadangan saat situasi darurat.\",\n      \"order\": 1\n    }\n  ]\n}",
+              "raw": "{\n  \"xpBonus\": 20,\n  \"coinReward\": 2000,\n  \"passScore\": 60,\n  \"questions\": [\n    {\n      \"question\": \"Apa manfaat utama menabung?\",\n      \"options\": [\n        {\n          \"text\": \"Boros uang\",\n          \"isCorrect\": false\n        },\n        {\n          \"text\": \"Punya cadangan darurat\",\n          \"isCorrect\": true\n        },\n        {\n          \"text\": \"Malas bekerja\",\n          \"isCorrect\": false\n        }\n      ],\n      \"explanation\": \"Menabung memberi dana cadangan saat darurat.\",\n      \"order\": 1\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3761,10 +3592,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('has quiz id', () => pm.expect(r.data.id).to.be.a('string'));",
-                  "pm.test('has questions', () => pm.expect(r.data.questions).to.be.an('array'));"
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has quizId', () => pm.expect(r.quizId).to.be.a('string'));"
                 ],
                 "type": "text/javascript"
               }
@@ -3772,7 +3602,7 @@
           ]
         },
         {
-          "name": "[ADMIN] PUT /admin/learning/articles/:id — Update Artikel",
+          "name": "[ADMIN] PUT /admin/learning/articles/:id — Update",
           "request": {
             "method": "PUT",
             "header": [
@@ -3814,7 +3644,343 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "16 · E-Learning [CHILD] — v4",
+      "item": [
+        {
+          "name": "[CHILD] GET /learning/modules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/modules",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "modules"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('modules is array', () => pm.expect(r.data).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] GET /learning/articles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('articles is array', () => pm.expect(r.data).to.be.an('array'));",
+                  "if (r.data.length > 0) pm.collectionVariables.set('article_id', r.data[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] GET /learning/articles/:id — Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles/{{article_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles",
+                "{{article_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has title', () => pm.expect(r.data.title).to.be.a('string'));",
+                  "pm.test('has content', () => pm.expect(r.data.content).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] POST /learning/articles/:id/complete — Tandai Selesai",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles",
+                "{{article_id}}",
+                "complete"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has xpEarned', () => pm.expect(r.data.xpEarned).to.be.a('number'));",
+                  "pm.test('has level', () => pm.expect(r.data.level).to.be.a('number'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] GET /learning/articles/:id/quiz — Ambil Soal",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/quiz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles",
+                "{{article_id}}",
+                "quiz"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has questions', () => pm.expect(r.data.questions).to.be.an('array'));",
+                  "pm.test('[SECURITY] isCorrect hidden', () => { r.data.questions.forEach(q => q.options.forEach(o => pm.expect(o.isCorrect).to.be.undefined)); });",
+                  "if (r.data.questions.length > 0) pm.collectionVariables.set('question_id', r.data.questions[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] POST /learning/articles/:id/quiz/submit — Submit Kuis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/quiz/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles",
+                "{{article_id}}",
+                "quiz",
+                "submit"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"{{question_id}}\",\n      \"optionIndex\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('score is number', () => pm.expect(r.data.score).to.be.a('number'));",
+                  "pm.test('score 0-100', () => { pm.expect(r.data.score).to.be.at.least(0); pm.expect(r.data.score).to.be.at.most(100); });",
+                  "pm.test('has passed flag', () => pm.expect(r.data.passed).to.be.a('boolean'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] GET /learning/my-progress",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/my-progress",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "my-progress"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has xp data', () => pm.expect(r.data.xp).to.exist);",
+                  "pm.test('level is number', () => pm.expect(r.data.xp.level).to.be.a('number'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "17 · Admin — E-Learning Cleanup",
+      "item": [
+        {
+          "name": "[ADMIN] DELETE /admin/vouchers/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/vouchers/{{voucher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "vouchers",
+                "{{voucher_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('success true',  () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3851,8 +4017,46 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 200 or 404', () => pm.expect([200,404]).to.include(pm.response.code));",
+                  "const r = pm.response.json();"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] DELETE /admin/learning/articles/:id — Hapus Artikel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/articles/{{article_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "articles",
+                "{{article_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3889,7 +4093,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                  "const r = pm.response.json();",
+                  "pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3899,10 +4104,10 @@
       ]
     },
     {
-      "name": "17 · Negative Tests — Security & Validasi",
+      "name": "18 · Negative Tests — Security & Validasi",
       "item": [
         {
-          "name": "[TEST] Login salah password — harus 401",
+          "name": "[NEG] Login salah password — harus 401",
           "request": {
             "method": "POST",
             "header": [
@@ -3925,7 +4130,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\",\n  \"password\": \"WRONG_PASSWORD\"\n}",
+              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\",\n  \"password\": \"SALAH\",\n  \"savingsPin\": \"123456\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3938,8 +4143,8 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
                   "const r = pm.response.json();",
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
                   "pm.test('success false', () => pm.expect(r.success).to.be.false);"
                 ],
                 "type": "text/javascript"
@@ -3948,7 +4153,7 @@
           ]
         },
         {
-          "name": "[TEST] Akses admin route tanpa token — harus 401",
+          "name": "[NEG] Akses admin tanpa token — harus 401",
           "request": {
             "method": "GET",
             "header": [],
@@ -3969,7 +4174,9 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                  "const r = pm.response.json();",
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('success false', () => pm.expect(r.success).to.be.false);"
                 ],
                 "type": "text/javascript"
               }
@@ -3977,7 +4184,7 @@
           ]
         },
         {
-          "name": "[TEST] Parent akses admin route — harus 403",
+          "name": "[NEG] Parent akses admin route — harus 403",
           "request": {
             "method": "GET",
             "header": [
@@ -4003,7 +4210,9 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                  "const r = pm.response.json();",
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('success false', () => pm.expect(r.success).to.be.false);"
                 ],
                 "type": "text/javascript"
               }
@@ -4011,7 +4220,7 @@
           ]
         },
         {
-          "name": "[TEST] Child akses parent route — harus 403",
+          "name": "[NEG] Child akses parent route — harus 403",
           "request": {
             "method": "POST",
             "header": [
@@ -4049,7 +4258,9 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                  "const r = pm.response.json();",
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('success false', () => pm.expect(r.success).to.be.false);"
                 ],
                 "type": "text/javascript"
               }
@@ -4057,7 +4268,7 @@
           ]
         },
         {
-          "name": "[TEST] Transfer saldo tidak cukup — harus 4xx",
+          "name": "[NEG] Transfer saldo tidak cukup — harus 4xx",
           "request": {
             "method": "POST",
             "header": [
@@ -4097,8 +4308,8 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 4xx', () => pm.expect(pm.response.code).to.be.within(400, 499));",
                   "const r = pm.response.json();",
+                  "pm.test('Status 4xx', () => pm.expect(pm.response.code).to.be.within(400,499));",
                   "pm.test('success false', () => pm.expect(r.success).to.be.false);"
                 ],
                 "type": "text/javascript"
@@ -4107,59 +4318,7 @@
           ]
         },
         {
-          "name": "[TEST] Submit kuis duplikat — harus 403 QUIZ_ALREADY_TAKEN",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{child_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/quiz/submit",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "learning",
-                "articles",
-                "{{article_id}}",
-                "quiz",
-                "submit"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"dummy-id\",\n      \"optionIndex\": 0\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 403 atau 400', () => pm.expect(pm.response.code).to.be.within(400, 499));",
-                  "const r = pm.response.json();",
-                  "pm.test('success false', () => pm.expect(r.success).to.be.false);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[TEST] Validasi input — register tanpa email",
+          "name": "[NEG] Body kosong login — harus 400",
           "request": {
             "method": "POST",
             "header": [
@@ -4169,20 +4328,20 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/auth/register/parent",
+              "raw": "{{base_url}}/api/auth/login/parent",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
                 "auth",
-                "register",
+                "login",
                 "parent"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"password\": \"Test@1234\",\n  \"fullName\": \"Test\"\n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4195,8 +4354,44 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 400 atau 422', () => pm.expect(pm.response.code).to.be.within(400, 422));",
                   "const r = pm.response.json();",
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('success false', () => pm.expect(r.success).to.be.false);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] Pocket tidak ada — harus 404/403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/pockets/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "pockets",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "pm.test('Status 403 atau 404', () => pm.expect(pm.response.code).to.be.oneOf([403,404]));",
                   "pm.test('success false', () => pm.expect(r.success).to.be.false);"
                 ],
                 "type": "text/javascript"

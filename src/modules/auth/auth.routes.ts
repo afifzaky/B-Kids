@@ -14,7 +14,7 @@ const loginLimiter = rateLimit({
   max: env.LOGIN_RATE_LIMIT_MAX,
   message: {
     success: false,
-    message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.',
+    message: 'Terlalu banyak percobaan login. Coba lagi dalam 5 menit.',
     code: 'RATE_LIMIT_EXCEEDED',
   },
   standardHeaders: true,
