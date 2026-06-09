@@ -32,6 +32,8 @@ export function ParentRegister() {
   const [isLoading, setIsLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
   const captchaRef = useRef<HTMLDivElement>(null);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -82,6 +84,15 @@ export function ParentRegister() {
 
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = "Tanggal lahir wajib diisi";
+    } else {
+      const today = new Date();
+      const dob = new Date(formData.dateOfBirth);
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+      if (age < 19) {
+        newErrors.dateOfBirth = "Usia minimal 19 tahun";
+      }
     }
 
     const emailRegex = /^[^\s@]+@[^\s@.]+\.[^\s@]+$/;
@@ -134,11 +145,15 @@ export function ParentRegister() {
       newErrors.nik = "NIK harus 16 digit angka";
     }
 
-    const bsiRegex = /^7\d{9}$/;
+    const bsiRegex = /^\d{10}$/;
     if (!formData.bsiAccountNumber) {
       newErrors.bsiAccountNumber = "Nomor rekening BSI wajib diisi";
     } else if (!bsiRegex.test(formData.bsiAccountNumber)) {
-      newErrors.bsiAccountNumber = "Nomor rekening BSI harus 10 digit diawali angka 7";
+      newErrors.bsiAccountNumber = "Nomor rekening BSI harus tepat 10 digit angka";
+    }
+
+    if (!agreeToTerms) {
+      newErrors.agreeToTerms = "Anda harus menyetujui Syarat dan Ketentuan";
     }
 
     setErrors(newErrors);
@@ -315,6 +330,122 @@ export function ParentRegister() {
         </div>
       )}
 
+      {/* ── TERMS & CONDITIONS MODAL ── */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowTermsModal(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg z-10 flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+              <h2 className="font-['Montserrat',sans-serif] font-bold text-bsi-teal-primary text-xl">
+                Syarat dan Ketentuan
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto px-6 py-5 space-y-5 font-['Lato',sans-serif] text-sm text-gray-700 leading-relaxed">
+              <p className="text-gray-500 text-xs">Terakhir diperbarui: Juni 2025</p>
+
+              <p>
+                Selamat datang di <strong>B-Kids</strong>, platform edukasi keuangan syariah untuk anak yang dikembangkan oleh
+                Bank Syariah Indonesia (BSI). Dengan mendaftar dan menggunakan layanan ini, Anda menyatakan telah membaca,
+                memahami, dan menyetujui seluruh syarat dan ketentuan berikut.
+              </p>
+
+              <div>
+                <h3 className="font-['Poppins',sans-serif] font-semibold text-gray-800 mb-2">1. Persyaratan Akun</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Pendaftar sebagai orang tua/wali harus berusia minimal 19 tahun.</li>
+                  <li>Akun anak hanya dapat dibuat oleh orang tua/wali yang telah terdaftar.</li>
+                  <li>Anak yang didaftarkan harus berusia antara 12 hingga di bawah 17 tahun.</li>
+                  <li>Setiap pengguna hanya diperbolehkan memiliki satu akun aktif.</li>
+                  <li>Data yang Anda berikan harus akurat, lengkap, dan terkini.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-['Poppins',sans-serif] font-semibold text-gray-800 mb-2">2. Rekening BSI</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Nomor rekening BSI yang didaftarkan harus merupakan rekening aktif atas nama Anda.</li>
+                  <li>B-Kids terhubung dengan ekosistem rekening BSI untuk keperluan edukasi keuangan.</li>
+                  <li>Saldo dan transaksi yang ditampilkan di B-Kids bersifat simulasi edukasi.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-['Poppins',sans-serif] font-semibold text-gray-800 mb-2">3. Privasi dan Keamanan Data</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Data pribadi Anda dijaga kerahasiaannya sesuai dengan kebijakan privasi BSI.</li>
+                  <li>Kami tidak akan menjual atau membagikan data pribadi Anda kepada pihak ketiga tanpa izin.</li>
+                  <li>Anda bertanggung jawab menjaga kerahasiaan password dan PIN akun Anda.</li>
+                  <li>Segera laporkan kepada kami jika terjadi akses tidak sah pada akun Anda.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-['Poppins',sans-serif] font-semibold text-gray-800 mb-2">4. Penggunaan Layanan</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>B-Kids digunakan semata-mata untuk tujuan edukasi keuangan syariah bagi anak.</li>
+                  <li>Dilarang menggunakan platform ini untuk kegiatan yang melanggar hukum atau merugikan pihak lain.</li>
+                  <li>Orang tua bertanggung jawab atas penggunaan akun anak di platform ini.</li>
+                  <li>BSI berhak menangguhkan atau menghapus akun yang melanggar ketentuan ini.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-['Poppins',sans-serif] font-semibold text-gray-800 mb-2">5. Fitur dan Konten</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Fitur tantangan, batas pengeluaran, dan materi edukasi dirancang untuk membentuk kebiasaan keuangan sehat.</li>
+                  <li>Konten materi pembelajaran bersifat informatif dan dapat berubah sewaktu-waktu.</li>
+                  <li>BSI tidak bertanggung jawab atas keputusan keuangan yang diambil berdasarkan konten edukasi di platform ini.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-['Poppins',sans-serif] font-semibold text-gray-800 mb-2">6. Perubahan Ketentuan</h3>
+                <p>
+                  BSI berhak mengubah syarat dan ketentuan ini sewaktu-waktu. Perubahan material akan diberitahukan melalui
+                  email atau notifikasi dalam aplikasi. Penggunaan layanan yang berkelanjutan setelah perubahan dianggap
+                  sebagai persetujuan Anda atas ketentuan yang baru.
+                </p>
+              </div>
+
+              <p className="text-gray-500 text-xs border-t border-gray-100 pt-4">
+                Untuk pertanyaan lebih lanjut, hubungi layanan nasabah BSI melalui BSI Call 14040 atau email
+                ke <span className="text-bsi-teal-primary">bsicall@bankbsi.co.id</span>.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="flex-1 px-4 py-2.5 border-2 border-gray-200 text-gray-600 font-['Poppins',sans-serif] font-semibold text-sm rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAgreeToTerms(true); setShowTermsModal(false); if (errors.agreeToTerms) setErrors((prev) => { const next = { ...prev }; delete next.agreeToTerms; return next; }); }}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-bsi-teal-primary to-bsi-teal-secondary text-white font-['Poppins',sans-serif] font-semibold text-sm rounded-xl hover:from-bsi-teal-hover-dark hover:to-bsi-teal-hover-light transition-all"
+              >
+                Saya Setuju
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── REGISTER FORM ── */}
       <div className="min-h-screen bg-gradient-to-br from-bsi-teal-primary to-bsi-teal-secondary flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
         <div className="absolute bg-[rgba(255,255,255,0.05)] blur-3xl rounded-full size-96 -top-48 -right-48 pointer-events-none" />
@@ -384,6 +515,7 @@ export function ParentRegister() {
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={(e) => handleChange("dateOfBirth", e.target.value)}
+                  max={new Date().toISOString().split("T")[0]}
                   className={inputBase(!!errors.dateOfBirth)}
                 />
                 {errors.dateOfBirth && <p className="mt-1 text-sm text-red-500 font-['Lato',sans-serif]">{errors.dateOfBirth}</p>}
@@ -563,13 +695,13 @@ export function ParentRegister() {
                   Nomor Rekening BSI
                 </label>
                 <p className="font-['Lato',sans-serif] text-gray-500 text-xs mb-2">
-                  10 digit diawali angka 7 (contoh: 7123456789)
+                  Tepat 10 digit angka
                 </p>
                 <input
                   type="text"
                   value={formData.bsiAccountNumber}
                   onChange={(e) => handleChange("bsiAccountNumber", e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  placeholder="7XXXXXXXXX"
+                  placeholder="Masukkan 10 digit nomor rekening"
                   maxLength={10}
                   inputMode="numeric"
                   className={inputBase(!!errors.bsiAccountNumber)}
@@ -583,6 +715,36 @@ export function ParentRegister() {
                   <div ref={captchaRef} />
                 </div>
               )}
+
+              {/* Terms & Conditions */}
+              <div className="mt-2">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="agreeToTerms"
+                    checked={agreeToTerms}
+                    onChange={(e) => {
+                      setAgreeToTerms(e.target.checked);
+                      if (errors.agreeToTerms) setErrors((prev) => { const next = { ...prev }; delete next.agreeToTerms; return next; });
+                    }}
+                    className="mt-1 w-4 h-4 accent-bsi-teal-primary cursor-pointer flex-shrink-0"
+                  />
+                  <label htmlFor="agreeToTerms" className="font-['Lato',sans-serif] text-sm text-gray-700 cursor-pointer leading-relaxed">
+                    Saya telah membaca dan menyetujui{" "}
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="text-bsi-teal-primary font-semibold underline hover:text-bsi-teal-hover-dark"
+                    >
+                      Syarat dan Ketentuan
+                    </button>{" "}
+                    penggunaan B-Kids
+                  </label>
+                </div>
+                {errors.agreeToTerms && (
+                  <p className="mt-1 text-sm text-red-500 font-['Lato',sans-serif]">{errors.agreeToTerms}</p>
+                )}
+              </div>
 
               {/* Submit */}
               <button

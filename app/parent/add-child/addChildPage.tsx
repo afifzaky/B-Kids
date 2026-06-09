@@ -70,18 +70,28 @@ export function AddChildPage() {
   };
 
   const validate = () => {
-    const errs: Record<string, string> = {};
-    if (!formData.fullName.trim()) errs.fullName = "Nama wajib diisi";
-    if (!formData.username.trim()) errs.username = "Username wajib diisi";
-    else if (!/^[a-z0-9_]+$/.test(formData.username)) errs.username = "Username hanya huruf kecil, angka, dan underscore";
-    if (!formData.dateOfBirth) errs.dateOfBirth = "Tanggal lahir wajib diisi";
-    if (!formData.password) errs.password = "Password wajib diisi";
-    else if (formData.password.length < 6) errs.password = "Password minimal 6 karakter";
-    if (!formData.pin) errs.pin = "PIN wajib diisi";
-    else if (formData.pin.length !== 6) errs.pin = "PIN harus 6 digit";
-    if (!formData.parentPin) errs.parentPin = "PIN Tabungan Anda wajib diisi";
-    else if (formData.parentPin.length !== 6) errs.parentPin = "PIN harus 6 digit";
-    return errs;
+    const newErrors: Record<string, string> = {};
+    if (!formData.fullName.trim()) newErrors.fullName = "Nama wajib diisi";
+    if (!formData.username.trim()) newErrors.username = "Username wajib diisi";
+    else if (!/^[a-z0-9_]+$/.test(formData.username)) newErrors.username = "Username hanya huruf kecil, angka, dan underscore";
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = "Tanggal lahir wajib diisi";
+    } else {
+      const today = new Date();
+      const dob = new Date(formData.dateOfBirth);
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+      if (age < 12) newErrors.dateOfBirth = "Usia anak minimal 12 tahun";
+      else if (age >= 17) newErrors.dateOfBirth = "Usia anak harus di bawah 17 tahun";
+    }
+    if (!formData.password) newErrors.password = "Password wajib diisi";
+    else if (formData.password.length < 6) newErrors.password = "Password minimal 6 karakter";
+    if (!formData.pin) newErrors.pin = "PIN wajib diisi";
+    else if (formData.pin.length !== 6) newErrors.pin = "PIN harus 6 digit";
+    if (!formData.parentPin) newErrors.parentPin = "PIN Tabungan Anda wajib diisi";
+    else if (formData.parentPin.length !== 6) newErrors.parentPin = "PIN harus 6 digit";
+    return newErrors;
   };
 
   const handlePreSubmit = (e: React.FormEvent) => {
@@ -218,7 +228,8 @@ export function AddChildPage() {
               type="date"
               value={formData.dateOfBirth}
               onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-              max={new Date().toISOString().split("T")[0]}
+              min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 17); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; })()}
+              max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 12); return d.toISOString().split("T")[0]; })()}
               className={`${inputBase} px-4`}
             />
             {fieldErrors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{fieldErrors.dateOfBirth}</p>}
