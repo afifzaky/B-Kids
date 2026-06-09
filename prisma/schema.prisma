@@ -148,7 +148,7 @@ model ParentProfile {
   // Foto profil orang tua (URL)
   avatarUrl        String?  @map("avatar_url")
   // Saldo dummy — dalam produksi, di-sync dari BSI Open API
-  dummyBalance     BigInt   @default(1000000000) @map("dummy_balance") // Rp 10.000.000
+  dummyBalance     BigInt   @default(0) @map("dummy_balance")
 
   user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   familyLinks       FamilyLink[]

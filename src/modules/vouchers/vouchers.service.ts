@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { prisma } from '../../config/database';
 import { AppError, InsufficientBalanceError, NotFoundError } from '../../types';
 import { assertWithinSpendingLimit } from '../../utils/spending-limit';
@@ -42,13 +43,18 @@ export async function buyVoucher(
 ) {
   const now = new Date();
 
-  const [voucher, account] = await Promise.all([
+  const [voucher, account, childProfile] = await Promise.all([
     prisma.voucherCatalog.findFirst({ where: { id: input.voucherId, isActive: true } }),
     prisma.childAccount.findUnique({ where: { childProfileId } }),
+    prisma.childProfile.findUnique({ where: { id: childProfileId }, select: { pinHash: true } }),
   ]);
 
   if (!voucher) throw new NotFoundError('Voucher');
   if (!account) throw new NotFoundError('Rekening anak');
+
+  if (!childProfile?.pinHash) throw new AppError('Data profil anak tidak ditemukan', 404, 'CHILD_NOT_FOUND');
+  const pinValid = await bcrypt.compare(input.pin, childProfile.pinHash);
+  if (!pinValid) throw new AppError('PIN salah', 401, 'INVALID_PIN');
 
   if (voucher.validFrom && now < voucher.validFrom)
     throw new AppError('Voucher belum berlaku', 422, 'VOUCHER_NOT_YET_VALID');

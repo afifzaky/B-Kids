@@ -111,7 +111,7 @@ export async function registerParent(input: RegisterParentInput) {
     );
   }
 
-  const OPENING_BALANCE = BigInt(1_000_000_000); // Rp 10.000.000 dalam sen
+  const OPENING_BALANCE = BigInt(0); // Saldo awal 0
 
   const [passwordHash, pinHash] = await Promise.all([
     bcrypt.hash(input.password, env.BCRYPT_SALT_ROUNDS),
@@ -166,7 +166,7 @@ export async function registerParent(input: RegisterParentInput) {
       balance: Number(OPENING_BALANCE) / 100,
       currency: 'IDR',
       status: 'DEMO',
-      note: 'Saldo awal Rp 10.000.000 (simulasi). Produksi: terhubung ke BSI Open API.',
+      note: 'Saldo awal Rp 0. Produksi: terhubung ke BSI Open API.',
     },
     ...tokens,
   };

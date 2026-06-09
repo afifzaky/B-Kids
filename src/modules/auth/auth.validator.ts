@@ -28,7 +28,7 @@ export const registerParentSchema = z.object({
   dateOfBirth: z.string().datetime({ message: 'Format tanggal tidak valid (ISO 8601)' }),
   bsiAccountNumber: z
     .string()
-    .regex(/^7\d{9}$/, 'Nomor rekening BSI harus 10 digit diawali angka 7'),
+    .regex(/^\d{10}$/, 'Nomor rekening BSI harus tepat 10 digit angka'),
 });
 
 // =============================================
