@@ -23,6 +23,6 @@ router.patch('/:id/reject', verifyToken, checkRole('PARENT'), asAuth(ChoresContr
 
 // Child only
 router.post('/:choreId/upload-evidence', verifyToken, checkRole('CHILD'), upload.single('file'), asAuth(ChoresController.uploadEvidence));
-router.post('/:id/submit', verifyToken, checkRole('CHILD'), asAuth(ChoresController.submitChore));
+router.post('/:id/submit', verifyToken, checkRole('CHILD'), upload.single('file'), asAuth(ChoresController.submitChore));
 
 export default router;

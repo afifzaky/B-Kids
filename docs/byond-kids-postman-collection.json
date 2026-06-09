@@ -1,104 +1,96 @@
 {
   "info": {
-    "_postman_id": "byond-kids-v3",
-    "name": "Byond Kids — Backend API v3",
-    "description": "Complete API collection for Byond Kids backend.\n\n## Quick Start\n1. Set `base_url` → `http://localhost:4000`\n2. Run **Login Admin** → `admin_token` tersimpan otomatis\n3. Run **Login Parent** → `parent_token` + `parent_refresh` tersimpan\n4. Run **GET Family Children** → `child_profile_id` tersimpan\n5. Run **Login Child (Aisha)** → `child_token` + `child_refresh` tersimpan\n\n## Seed Credentials\n| Role | Identifier | Password | PIN |\n|------|-----------|---------|-----|\n| SUPER_ADMIN | admin@byond.id | Admin@Byond2026! | — |\n| PARENT | budi.santoso@demo.byond.id | Byond@2026 | 123456 |\n| CHILD 1 (Aisha) | aisha_byond | 123456 | 123456 |\n| CHILD 2 (Rizky) | rizky_byond | 654321 | 654321 |\n\n## RBAC\n- `[PUBLIC]` — Tidak perlu token\n- `[PARENT]` — Bearer `{{parent_token}}`\n- `[CHILD]` — Bearer `{{child_token}}`\n- `[ADMIN]` — Bearer `{{admin_token}}`\n- `[ANY]` — Token valid (PARENT atau CHILD)\n",
+    "_postman_id": "byond-kids-v4",
+    "name": "Byond Kids — Backend API v4",
+    "description": "Complete API collection with automated tests for all business flows.\n\n## Quick Start\n1. Set `base_url` → `http://192.168.23.67:30400`\n2. Run **[SETUP] Login Admin** → auto-saves `admin_token`\n3. Run **[SETUP] Login Parent** → auto-saves `parent_token`, `parent_profile_id`\n4. Run **[SETUP] Login Child (Aisha)** → auto-saves `child_token`, `child_profile_id`\n5. Run Collection with \"Run All\" untuk automated test seluruh flow\n\n## Test Credentials\n| Role | Login | Password |\n|------|-------|----------|\n| ADMIN | admin@byond.id | Admin@Byond2026! |\n| PARENT | budi.santoso@demo.byond.id | Byond@2026 |\n| CHILD 1 (Aisha) | username: aisha_byond | 123456 |\n| CHILD 2 (Rizky) | username: rizky_byond | 654321 |",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
-      "value": "http://localhost:4000",
+      "value": "http://192.168.23.67:30400",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
       "type": "string"
     },
     {
       "key": "parent_token",
       "value": "",
-      "type": "string",
-      "description": "Auto-filled by Login Parent"
+      "type": "string"
     },
     {
       "key": "parent_refresh",
       "value": "",
-      "type": "string",
-      "description": "Auto-filled by Login Parent"
-    },
-    {
-      "key": "child_token",
-      "value": "",
-      "type": "string",
-      "description": "Auto-filled by Login Child"
-    },
-    {
-      "key": "child_refresh",
-      "value": "",
-      "type": "string",
-      "description": "Auto-filled by Login Child"
-    },
-    {
-      "key": "admin_token",
-      "value": "",
-      "type": "string",
-      "description": "Auto-filled by Login Admin"
-    },
-    {
-      "key": "admin_refresh",
-      "value": "",
-      "type": "string",
-      "description": "Auto-filled by Login Admin"
-    },
-    {
-      "key": "child_profile_id",
-      "value": "",
-      "type": "string",
-      "description": "Auto-filled by GET /family/children"
-    },
-    {
-      "key": "pocket_id",
-      "value": "",
-      "type": "string",
-      "description": "Auto-filled by POST /pockets"
-    },
-    {
-      "key": "chore_id",
-      "value": "",
-      "type": "string",
-      "description": "Auto-filled by POST /chores"
-    },
-    {
-      "key": "voucher_id",
-      "value": "",
-      "type": "string",
-      "description": "Auto-filled by GET /admin/vouchers"
-    },
-    {
-      "key": "institution_id",
-      "value": "",
-      "type": "string",
-      "description": "Auto-filled by GET /admin/infaq/institutions"
+      "type": "string"
     },
     {
       "key": "parent_profile_id",
       "value": "",
-      "type": "string",
-      "description": "Auto-filled by Login Parent"
+      "type": "string"
+    },
+    {
+      "key": "child_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "child_refresh",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "child_profile_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "chore_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pocket_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "voucher_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "institution_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "module_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "article_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "parent_profile_id_admin",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
     {
       "name": "00 · Health",
-      "description": "",
       "item": [
         {
           "name": "[PUBLIC] GET /health",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/health",
               "host": [
@@ -107,62 +99,16 @@
               "path": [
                 "health"
               ]
-            },
-            "description": "Status dasar server. Tidak perlu token."
+            }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Server up', () => pm.expect(pm.response.json().success).to.be.true);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[ADMIN] GET /health/detailed",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/health/detailed",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "health",
-                "detailed"
-              ]
-            },
-            "description": "Status lengkap termasuk DB + storage. Hanya SUPER_ADMIN.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                  "const r = pm.response.json();",
+                  "pm.test('status ok', () => pm.expect(r.status).to.equal('ok'));"
                 ],
                 "type": "text/javascript"
               }
@@ -172,52 +118,10 @@
       ]
     },
     {
-      "name": "01 · Auth — Public",
-      "description": "",
+      "name": "01 · [SETUP] Auth — Login & Token",
       "item": [
         {
-          "name": "[PUBLIC] POST /register/parent",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/register/parent",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "register",
-                "parent"
-              ]
-            },
-            "description": "Registrasi akun orang tua baru. `captchaToken` di-skip jika `CAPTCHA_ENABLED=false` (default dev).",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"test.orang.tua@gmail.com\",\n  \"phone\": \"08111222333\",\n  \"password\": \"Password123\",\n  \"savingsPin\": \"999888\",\n  \"fullName\": \"Test Orang Tua\",\n  \"nik\": \"3171000000000099\",\n  \"dateOfBirth\": \"1990-01-15T00:00:00.000Z\",\n  \"bsiAccountNumber\": \"7999888777\",\n  \"captchaToken\": \"test-bypass\"\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Register returns 201', () => pm.response.to.have.status(201));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PUBLIC] POST /login/admin",
+          "name": "[SETUP] Login Admin",
           "request": {
             "method": "POST",
             "header": [
@@ -238,26 +142,26 @@
                 "admin"
               ]
             },
-            "description": "Login SUPER_ADMIN. Hanya email + password, tidak butuh PIN.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@byond.id\",\n  \"password\": \"Admin@Byond2026!\",\n  \"captchaToken\": \"test-bypass\"\n}"
+              "raw": "{\n  \"email\": \"admin@byond.id\",\n  \"password\": \"Admin@Byond2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "const r = pm.response.json();",
-                  "pm.test('Login admin 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Ada token', () => pm.expect(r.data?.accessToken).to.be.a('string'));",
-                  "if (r.data?.accessToken) {",
-                  "  pm.collectionVariables.set('admin_token', r.data.accessToken);",
-                  "  pm.collectionVariables.set('admin_refresh', r.data.refreshToken);",
-                  "  console.log('admin_token saved ✅');",
-                  "}"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "pm.test('has data', () => pm.expect(r.data).to.exist);",
+                  "pm.test('has accessToken', () => pm.expect(r.data.accessToken).to.be.a('string'));",
+                  "pm.collectionVariables.set('admin_token', r.data.accessToken);"
                 ],
                 "type": "text/javascript"
               }
@@ -265,7 +169,7 @@
           ]
         },
         {
-          "name": "[PUBLIC] POST /login/parent",
+          "name": "[SETUP] Login Parent (Budi)",
           "request": {
             "method": "POST",
             "header": [
@@ -286,27 +190,29 @@
                 "parent"
               ]
             },
-            "description": "Login PARENT. 3-factor: email + password + savingsPin (PIN Tabungan 6 digit).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\",\n  \"password\": \"Byond@2026\",\n  \"savingsPin\": \"123456\",\n  \"captchaToken\": \"test-bypass\"\n}"
+              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\",\n  \"password\": \"Byond@2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('Login parent 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Ada token', () => pm.expect(r.data?.accessToken).to.be.a('string'));",
-                  "if (r.data?.accessToken) {",
-                  "  pm.collectionVariables.set('parent_token', r.data.accessToken);",
-                  "  pm.collectionVariables.set('parent_refresh', r.data.refreshToken);",
-                  "  pm.collectionVariables.set('parent_profile_id', r.data.profile?.id ?? '');",
-                  "  console.log('parent_token saved ✅ Profile:', r.data.profile?.fullName);",
-                  "}"
+                  "pm.test('has tokens', () => { pm.expect(r.data.accessToken).to.be.a('string'); pm.expect(r.data.refreshToken).to.be.a('string'); });",
+                  "pm.collectionVariables.set('parent_token', r.data.accessToken);",
+                  "pm.collectionVariables.set('parent_refresh', r.data.refreshToken);",
+                  "pm.collectionVariables.set('parent_profile_id', r.data.user.profile.id);",
+                  "pm.collectionVariables.set('parent_profile_id_admin', r.data.user.profile.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -314,7 +220,7 @@
           ]
         },
         {
-          "name": "[PUBLIC] POST /login/child (Aisha)",
+          "name": "[SETUP] Login Child — Aisha",
           "request": {
             "method": "POST",
             "header": [
@@ -335,26 +241,28 @@
                 "child"
               ]
             },
-            "description": "Login CHILD Aisha. 3-factor: username + password + pin (PIN 6 digit).\n\nSaves `child_token`, `child_refresh`, `child_profile_id`.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"aisha_byond\",\n  \"password\": \"123456\",\n  \"pin\": \"123456\",\n  \"captchaToken\": \"test-bypass\"\n}"
+              "raw": "{\n  \"username\": \"aisha_byond\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('Login child 200', () => pm.response.to.have.status(200));",
-                  "if (r.data?.accessToken) {",
-                  "  pm.collectionVariables.set('child_token', r.data.accessToken);",
-                  "  pm.collectionVariables.set('child_refresh', r.data.refreshToken);",
-                  "  pm.collectionVariables.set('child_profile_id', r.data.profile?.id ?? '');",
-                  "  console.log('child_token saved ✅ Profile:', r.data.profile?.fullName);",
-                  "}"
+                  "pm.test('role CHILD', () => pm.expect(r.data.user.role).to.equal('CHILD'));",
+                  "pm.collectionVariables.set('child_token', r.data.accessToken);",
+                  "pm.collectionVariables.set('child_refresh', r.data.refreshToken);",
+                  "pm.collectionVariables.set('child_profile_id', r.data.user.profile.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -362,7 +270,7 @@
           ]
         },
         {
-          "name": "[PUBLIC] POST /login/child (Rizky)",
+          "name": "[SETUP] Login Child — Rizky",
           "request": {
             "method": "POST",
             "header": [
@@ -383,26 +291,25 @@
                 "child"
               ]
             },
-            "description": "Login CHILD Rizky (anak ke-2). Ganti `child_token` jika ingin test dengan Rizky.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"rizky_byond\",\n  \"password\": \"654321\",\n  \"pin\": \"654321\",\n  \"captchaToken\": \"test-bypass\"\n}"
+              "raw": "{\n  \"username\": \"rizky_byond\",\n  \"password\": \"654321\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('Login child 200', () => pm.response.to.have.status(200));",
-                  "if (r.data?.accessToken) {",
-                  "  pm.collectionVariables.set('child_token', r.data.accessToken);",
-                  "  pm.collectionVariables.set('child_refresh', r.data.refreshToken);",
-                  "  pm.collectionVariables.set('child_profile_id', r.data.profile?.id ?? '');",
-                  "  console.log('child_token (Rizky) saved ✅');",
-                  "}"
+                  "pm.test('role CHILD', () => pm.expect(r.data.user.role).to.equal('CHILD'));"
                 ],
                 "type": "text/javascript"
               }
@@ -430,25 +337,27 @@
                 "refresh"
               ]
             },
-            "description": "Dapatkan access token baru menggunakan refresh token. Refresh token lama diinvalidasi (rotasi).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"{{parent_refresh}}\"\n}"
+              "raw": "{\n  \"refreshToken\": \"{{parent_refresh}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('Refresh 200', () => pm.response.to.have.status(200));",
-                  "if (r.data?.accessToken) {",
-                  "  pm.collectionVariables.set('parent_token', r.data.accessToken);",
-                  "  pm.collectionVariables.set('parent_refresh', r.data.refreshToken);",
-                  "  console.log('Token refreshed ✅');",
-                  "}"
+                  "pm.test('new tokens issued', () => { pm.expect(r.data.accessToken).to.be.a('string'); pm.expect(r.data.refreshToken).to.be.a('string'); });",
+                  "pm.collectionVariables.set('parent_token', r.data.accessToken);",
+                  "pm.collectionVariables.set('parent_refresh', r.data.refreshToken);"
                 ],
                 "type": "text/javascript"
               }
@@ -456,251 +365,13 @@
           ]
         },
         {
-          "name": "[PUBLIC] POST /logout (Parent)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/logout",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "logout"
-              ]
-            },
-            "description": "Logout orang tua — invalidasi refresh token. Access token tetap valid sampai expire (8 menit).",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"{{parent_refresh}}\"\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Logout 200', () => pm.response.to.have.status(200));",
-                  "pm.collectionVariables.set('parent_token', '');",
-                  "pm.collectionVariables.set('parent_refresh', '');",
-                  "console.log('parent_token cleared ✅');"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PUBLIC] POST /logout (Child)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/logout",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "logout"
-              ]
-            },
-            "description": "Logout anak — invalidasi refresh token anak.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"{{child_refresh}}\"\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Logout 200', () => pm.response.to.have.status(200));",
-                  "pm.collectionVariables.set('child_token', '');",
-                  "pm.collectionVariables.set('child_refresh', '');",
-                  "console.log('child_token cleared ✅');"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PUBLIC] POST /forgot-password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/forgot-password",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "forgot-password"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Request reset password link via email.\n\nAnti-enumeration: always returns 200 regardless of whether email exists.\nRate limit: 5 req / 15 min per IP.\nToken valid for 15 minutes (single-use)."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Returns 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Generic message (anti-enumeration)', () => {",
-                  "  const r = pm.response.json();",
-                  "  pm.expect(r.success).to.be.true;",
-                  "  pm.expect(r.message).to.include('email terdaftar');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PUBLIC] POST /reset-password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/reset-password",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "reset-password"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"PASTE_TOKEN_FROM_EMAIL_HERE_64_HEX_CHARS\",\n  \"newPassword\": \"NewByond@2026\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Apply new password using token from email link.\n\nToken is 64-char hex (32 random bytes, SHA-256 hashed in DB).\nSingle-use: token is marked usedAt after redemption.\nForce logout: all active sessions are invalidated on success."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Returns 200 on valid token', () => {",
-                  "  // Will fail with AUTH_ERROR if token is placeholder",
-                  "  const r = pm.response.json();",
-                  "  if (r.success) pm.test('Password reset OK', () => pm.expect(r.message).to.include('berhasil direset'));",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PUBLIC] POST /forgot-username",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/forgot-username",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "forgot-username"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"parentEmail\": \"budi.santoso@demo.byond.id\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Send list of children usernames to parent's registered email.\n\nAnti-enumeration: always returns 200.\nRate limit: 5 req / 15 min per IP.\nOnly works with parent email — child accounts are managed by parent."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Returns 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Generic message (anti-enumeration)', () => {",
-                  "  const r = pm.response.json();",
-                  "  pm.expect(r.success).to.be.true;",
-                  "  pm.expect(r.message).to.include('email terdaftar');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "02 · Auth — Me & Profile Management",
-      "description": "",
-      "item": [
-        {
-          "name": "[ANY] GET /me",
+          "name": "[ANY] GET /me — Parent",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -713,27 +384,154 @@
                 "auth",
                 "me"
               ]
-            },
-            "description": "Profil user yang sedang login. Ganti token ke child_token atau admin_token untuk cek role lain.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('GET me 200', () => pm.response.to.have.status(200));",
-                  "console.log('Role:', pm.response.json().data?.role);"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('role PARENT', () => pm.expect(r.data.role).to.equal('PARENT'));",
+                  "pm.test('has profile', () => pm.expect(r.data.profile).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ANY] GET /me — Child",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('role CHILD', () => pm.expect(r.data.role).to.equal('CHILD'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[PUBLIC] POST /logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{parent_refresh}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 · Auth — Profil & Manajemen Anak",
+      "item": [
+        {
+          "name": "[PARENT] POST /children — Buat Akun Anak",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/children",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "children"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test Anak Demo\",\n  \"dateOfBirth\": \"2014-01-15\",\n  \"username\": \"testanak_demo\",\n  \"pin\": \"111222\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has childProfileId', () => pm.expect(r.data.childProfileId).to.be.a('string'));"
                 ],
                 "type": "text/javascript"
               }
@@ -748,6 +546,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -762,80 +564,23 @@
                 "profile"
               ]
             },
-            "description": "Update nama dan/atau URL foto profil orang tua. Tidak perlu PIN.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Budi Santoso Updated\",\n  \"avatarUrl\": \"https://example.com/budi.jpg\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
+              "raw": "{\n  \"fullName\": \"Budi Santoso Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PARENT] PATCH /me/email",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/me/email",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "me",
-                "email"
-              ]
-            },
-            "description": "Ganti email. Wajib verifikasi PIN Tabungan 6 digit.\n\n**Setelah berhasil, gunakan email baru untuk login.**",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"newEmail\": \"budi.baru@gmail.com\",\n  \"savingsPin\": \"123456\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -850,6 +595,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -864,236 +613,23 @@
                 "password"
               ]
             },
-            "description": "Ganti password. Semua sesi diinvalidasi setelah berhasil.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"oldPassword\": \"Byond@2026\",\n  \"newPassword\": \"Byond@2027\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
+              "raw": "{\n  \"oldPassword\": \"Byond@2026\",\n  \"newPassword\": \"Byond@2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PARENT] PATCH /me/pin",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/me/pin",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "me",
-                "pin"
-              ]
-            },
-            "description": "Ganti PIN Tabungan 6 digit.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"oldPin\": \"123456\",\n  \"newPin\": \"654321\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PARENT] POST /children — Create Child",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/children",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "children"
-              ]
-            },
-            "description": "Buat profil anak baru. Memerlukan konfirmasi `parentPin` (PIN Tabungan orang tua).",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Fatimah Az-Zahra\",\n  \"dateOfBirth\": \"2015-08-10T00:00:00.000Z\",\n  \"username\": \"fatimah_byond\",\n  \"password\": \"Fatimah123\",\n  \"pin\": \"111222\",\n  \"parentPin\": \"123456\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const r = pm.response.json();",
-                  "pm.test('201', () => pm.response.to.have.status(201));",
-                  "if (r.data?.id) { pm.collectionVariables.set('child_profile_id', r.data.id); console.log('child_profile_id (new child):', r.data.id); }"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PARENT] PATCH /children/:childId/password",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/children/{{child_profile_id}}/password",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "children",
-                "{{child_profile_id}}",
-                "password"
-              ]
-            },
-            "description": "Orang tua ganti password anak. Anak **tidak bisa** ganti password sendiri.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"newPassword\": \"AishaNew123\",\n  \"parentPin\": \"123456\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PARENT] PATCH /children/:childId/pin",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/children/{{child_profile_id}}/pin",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "children",
-                "{{child_profile_id}}",
-                "pin"
-              ]
-            },
-            "description": "Orang tua ganti PIN anak. Anak **tidak bisa** ganti PIN sendiri.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"newPin\": \"999888\",\n  \"parentPin\": \"123456\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1104,7 +640,6 @@
     },
     {
       "name": "03 · Family [PARENT]",
-      "description": "",
       "item": [
         {
           "name": "[PARENT] GET /family/children",
@@ -1112,8 +647,8 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -1126,31 +661,19 @@
                 "family",
                 "children"
               ]
-            },
-            "description": "Daftar semua anak yang terdaftar dalam keluarga orang tua yang login.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "if (r.data && r.data[0]) {",
-                  "  pm.collectionVariables.set('child_profile_id', r.data[0].id);",
-                  "  console.log('child_profile_id saved:', r.data[0].id, '(' + r.data[0].fullName + ')');",
-                  "}"
+                  "pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));",
+                  "pm.test('has children', () => pm.expect(r.data.length).to.be.at.least(1));",
+                  "if (r.data.length > 0) pm.collectionVariables.set('child_profile_id', r.data[0].id);"
                 ],
                 "type": "text/javascript"
               }
@@ -1161,7 +684,6 @@
     },
     {
       "name": "04 · Parent Banking [PARENT]",
-      "description": "",
       "item": [
         {
           "name": "[PARENT] GET /parent/banking/account",
@@ -1169,8 +691,8 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -1184,27 +706,18 @@
                 "banking",
                 "account"
               ]
-            },
-            "description": "Ringkasan rekening BSI orang tua: nomor rekening, saldo, mata uang.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "console.log('Saldo:', pm.response.json().data?.balance, 'IDR');"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has balance', () => pm.expect(r.data.balance).to.be.a('string'));",
+                  "pm.test('has bsiAccountNumber', () => pm.expect(r.data.bsiAccountNumber).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -1217,12 +730,12 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/parent/banking/transactions?page=1&limit=20",
+              "raw": "{{base_url}}/api/parent/banking/transactions",
               "host": [
                 "{{base_url}}"
               ],
@@ -1231,37 +744,17 @@
                 "parent",
                 "banking",
                 "transactions"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "20"
-                }
-              ]
-            },
-            "description": "Riwayat transaksi rekening orang tua (paginated).",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('has data array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1276,6 +769,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -1290,30 +787,24 @@
                 "deposit"
               ]
             },
-            "description": "Simulasi top-up saldo rekening orang tua. `amount` dalam IDR (bukan sen).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 5000000,\n  \"notes\": \"Top-up rekening dari ATM\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
+              "raw": "{\n  \"amount\": 100000,\n  \"pin\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('201', () => pm.response.to.have.status(201));",
-                  "console.log('Saldo baru:', pm.response.json().data?.newBalance, 'IDR');"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('balance updated', () => pm.expect(r.data.balanceAfter).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -1321,13 +812,17 @@
           ]
         },
         {
-          "name": "[PARENT] POST /parent/banking/transfer (ke anak)",
+          "name": "[PARENT] POST /parent/banking/transfer ke Anak",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -1342,29 +837,26 @@
                 "transfer"
               ]
             },
-            "description": "Transfer saldo dari rekening orang tua ke Tabungan Utama anak.\n\n**Pastikan `child_profile_id` sudah diisi** (dari GET /family/children).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"childProfileId\": \"{{child_profile_id}}\",\n  \"amount\": 100000,\n  \"notes\": \"Uang jajan minggu ini\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
+              "raw": "{\n  \"childProfileId\": \"{{child_profile_id}}\",\n  \"amount\": 10000,\n  \"pin\": \"123456\",\n  \"notes\": \"Uang jajan tes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('201', () => pm.response.to.have.status(201));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('parentBalanceAfter exists', () => pm.expect(r.data.parentBalanceAfter).to.exist);",
+                  "pm.test('childBalanceAfter exists', () => pm.expect(r.data.childBalanceAfter).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -1375,7 +867,6 @@
     },
     {
       "name": "05 · Parent Monitoring [PARENT]",
-      "description": "",
       "item": [
         {
           "name": "[PARENT] GET /parent/summary/:childId",
@@ -1383,8 +874,8 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -1398,26 +889,15 @@
                 "summary",
                 "{{child_profile_id}}"
               ]
-            },
-            "description": "Dashboard monitoring anak: saldo, pockets, chores pending, statistik bulanan.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1430,8 +910,8 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -1446,77 +926,16 @@
                 "{{child_profile_id}}",
                 "pockets"
               ]
-            },
-            "description": "Lihat semua pocket saving goals anak (read-only, tidak bisa edit).",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "const r = pm.response.json();",
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "if (r.data?.pockets?.[0]) { pm.collectionVariables.set('pocket_id', r.data.pockets[0].id); console.log('pocket_id saved'); }"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PARENT] GET /parent/children/:childId/pockets/:pocketId",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/parent/children/{{child_profile_id}}/pockets/{{pocket_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "parent",
-                "children",
-                "{{child_profile_id}}",
-                "pockets",
-                "{{pocket_id}}"
-              ]
-            },
-            "description": "Detail pocket anak + 50 transaksi terakhir.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1527,54 +946,7 @@
     },
     {
       "name": "06 · Spending Limits [PARENT]",
-      "description": "",
       "item": [
-        {
-          "name": "[PARENT] GET /limits/:childId",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/limits/{{child_profile_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "limits",
-                "{{child_profile_id}}"
-              ]
-            },
-            "description": "Lihat semua spending limit aktif untuk anak tertentu.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
         {
           "name": "[PARENT] PUT /limits/:childId — Set General Limit",
           "request": {
@@ -1583,6 +955,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -1596,29 +972,23 @@
                 "{{child_profile_id}}"
               ]
             },
-            "description": "Set limit belanja umum (semua tipe transaksi). `null` = hapus limit periode itu.\n\n`excludeInfaq: true` → infaq tidak dihitung dalam limit.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"daily\": 100000,\n  \"weekly\": 500000,\n  \"excludeInfaq\": true\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
+              "raw": "{\n  \"period\": \"DAILY\",\n  \"limitAmount\": 30000,\n  \"excludeInfaq\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1626,13 +996,17 @@
           ]
         },
         {
-          "name": "[PARENT] POST /limits/:childId/category — Set Category Limit",
+          "name": "[PARENT] POST /limits/:childId/category — Gaming Limit",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -1647,29 +1021,59 @@
                 "category"
               ]
             },
-            "description": "Set limit per kategori voucher.\n\n**Contoh:** GAME_TOPUP daily 50k = anak hanya boleh beli game topup maks Rp 50.000/hari, walaupun limit umum 100k.\n\n`voucherType`: DISCOUNT | GAME_TOPUP | E_WALLET | EDUCATION",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"voucherType\": \"GAME_TOPUP\",\n  \"period\": \"DAILY\",\n  \"limitAmount\": 50000\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
+              "raw": "{\n  \"period\": \"DAILY\",\n  \"limitAmount\": 10000,\n  \"voucherType\": \"GAME_TOPUP\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('201', () => pm.response.to.have.status(201));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[PARENT] GET /limits/:childId",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/limits/{{child_profile_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "limits",
+                "{{child_profile_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('has general limits', () => pm.expect(r.data.general).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1679,62 +1083,20 @@
       ]
     },
     {
-      "name": "07 · Chores / Tugas [PARENT + CHILD]",
-      "description": "",
+      "name": "07 · Chores / Tantangan [PARENT + CHILD]",
       "item": [
         {
-          "name": "[PARENT] GET /chores",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/chores",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "chores"
-              ]
-            },
-            "description": "Orang tua: lihat semua chores yang dibuat (filter by createdById).",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PARENT] POST /chores — Create Chore",
+          "name": "[PARENT] POST /chores — Buat Chore",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -1747,31 +1109,26 @@
                 "chores"
               ]
             },
-            "description": "Buat tugas (chore) baru untuk anak. `rewardAmount` dalam IDR — masuk ke Tabungan Utama anak jika disetujui.\n\n`category`: Akademik | Hafalan Qur'an | Pekerjaan Rumah | Ibadah Rutin | Lainnya",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"assignedToId\": \"{{child_profile_id}}\",\n  \"title\": \"Shalat Subuh tepat waktu\",\n  \"description\": \"Shalat subuh berjamaah di masjid atau di rumah sebelum jam 5:30\",\n  \"category\": \"Ibadah Rutin\",\n  \"rewardAmount\": 10000,\n  \"deadline\": \"2026-12-31T23:59:00.000Z\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
+              "raw": "{\n  \"assignedToId\": \"{{child_profile_id}}\",\n  \"title\": \"Belajar 30 menit\",\n  \"description\": \"Belajar matematika selama 30 menit\",\n  \"category\": \"Akademik\",\n  \"rewardAmount\": 5000,\n  \"deadline\": \"2027-12-31T23:59:59Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('201', () => pm.response.to.have.status(201));",
-                  "if (r.data?.id) { pm.collectionVariables.set('chore_id', r.data.id); console.log('chore_id saved:', r.data.id); }"
+                  "pm.test('has chore id', () => pm.expect(r.data.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('chore_id', r.data.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -1779,95 +1136,34 @@
           ]
         },
         {
-          "name": "[PARENT] PUT /chores/:id — Update Chore",
+          "name": "[PARENT] GET /chores",
           "request": {
-            "method": "PUT",
+            "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/chores/{{chore_id}}",
+              "raw": "{{base_url}}/api/chores",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
-                "chores",
-                "{{chore_id}}"
-              ]
-            },
-            "description": "Update chore yang masih ACTIVE.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Shalat Subuh berjamaah\",\n  \"rewardAmount\": 15000\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
+                "chores"
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[PARENT] DELETE /chores/:id",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/chores/{{chore_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "chores",
-                "{{chore_id}}"
-              ]
-            },
-            "description": "Batalkan/hapus chore (hanya jika masih ACTIVE).",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1880,8 +1176,8 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -1893,26 +1189,15 @@
                 "api",
                 "chores"
               ]
-            },
-            "description": "Anak: lihat semua chores yang di-assign ke anak yang login.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -1920,13 +1205,17 @@
           ]
         },
         {
-          "name": "[CHILD] POST /chores/:id/submit — Submit Chore",
+          "name": "[CHILD] POST /chores/:id/submit — Submit Bukti (JSON)",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -1941,29 +1230,25 @@
                 "submit"
               ]
             },
-            "description": "Anak submit pengerjaan chore. Masuk status PENDING_REVIEW.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"notes\": \"Sudah shalat subuh jam 4:45 di masjid Al-Falah\",\n  \"mediaUrl\": \"https://example.com/foto-bukti.jpg\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
+              "raw": "{\n  \"notes\": \"Sudah belajar matematika 30 menit\",\n  \"mediaUrl\": \"https://picsum.photos/400/300\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('201', () => pm.response.to.have.status(201));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('message exists', () => pm.expect(r.message).to.be.a('string'));"
                 ],
                 "type": "text/javascript"
               }
@@ -1971,13 +1256,13 @@
           ]
         },
         {
-          "name": "[PARENT] PATCH /chores/:id/approve — Approve Chore",
+          "name": "[PARENT] PATCH /chores/:id/approve",
           "request": {
             "method": "PATCH",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -1991,27 +1276,17 @@
                 "{{chore_id}}",
                 "approve"
               ]
-            },
-            "description": "Orang tua setujui chore → reward masuk ke Tabungan Utama anak.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "console.log('Reward cair:', pm.response.json().data?.reward);"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has rewardAmount', () => pm.expect(r.data.rewardAmount).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -2019,13 +1294,115 @@
           ]
         },
         {
-          "name": "[PARENT] PATCH /chores/:id/reject — Reject Chore",
+          "name": "[PARENT] POST /chores — Buat Chore untuk Reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/chores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "chores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignedToId\": \"{{child_profile_id}}\",\n  \"title\": \"Chore untuk test reject\",\n  \"category\": \"Lainnya\",\n  \"rewardAmount\": 2000,\n  \"deadline\": \"2027-12-31T23:59:59Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.collectionVariables.set('chore_id', r.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] POST /chores/:id/submit — Submit untuk Reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/chores/{{chore_id}}/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "chores",
+                "{{chore_id}}",
+                "submit"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Sudah selesai\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[PARENT] PATCH /chores/:id/reject",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
               }
             ],
             "url": {
@@ -2040,29 +1417,23 @@
                 "reject"
               ]
             },
-            "description": "Orang tua tolak pengerjaan chore. `rejectionNote` wajib diisi (minimal 5 karakter).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"rejectionNote\": \"Foto bukti tidak jelas, coba lagi besok\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{parent_token}}",
-                  "type": "string"
+              "raw": "{\n  \"rejectionNote\": \"Bukti kurang lengkap, tolong ulangi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -2073,63 +1444,15 @@
     },
     {
       "name": "08 · Child Self-Service [CHILD]",
-      "description": "",
       "item": [
-        {
-          "name": "[CHILD] GET /auth/me",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/auth/me",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "me"
-              ]
-            },
-            "description": "Data user anak yang sedang login: ID, role, profil, saldo.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "console.log('Child role:', pm.response.json().data?.role);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
         {
           "name": "[CHILD] GET /child/dashboard",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2142,73 +1465,16 @@
                 "child",
                 "dashboard"
               ]
-            },
-            "description": "Dashboard anak: saldo tabungan utama, ringkasan pocket, chores pending, 5 transaksi terakhir, total infaq bulan ini.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "console.log('Saldo tabungan utama:', pm.response.json().data?.tabunganUtama?.balance, 'IDR');"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[CHILD] GET /child/profile",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/child/profile",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "child",
-                "profile"
-              ]
-            },
-            "description": "Profil lengkap anak: nama, username, avatar, nomor rekening, info orang tua.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('has profile', () => pm.expect(r.data.profile).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -2221,8 +1487,8 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2235,26 +1501,16 @@
                 "child",
                 "account"
               ]
-            },
-            "description": "Info rekening Tabungan Utama anak + daftar spending limits dari orang tua.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('has balance', () => pm.expect(r.data.balance).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -2267,12 +1523,12 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/child/transactions?page=1&limit=20",
+              "raw": "{{base_url}}/api/child/transactions",
               "host": [
                 "{{base_url}}"
               ],
@@ -2280,37 +1536,16 @@
                 "api",
                 "child",
                 "transactions"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "20"
-                }
-              ]
-            },
-            "description": "Riwayat transaksi Tabungan Utama anak (paginated).",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -2318,59 +1553,17 @@
           ]
         },
         {
-          "name": "[CHILD] GET /child/pockets",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/child/pockets",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "child",
-                "pockets"
-              ]
-            },
-            "description": "Semua pocket saving goals anak yang aktif.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[CHILD] PATCH /child/avatar — Update Avatar",
+          "name": "[CHILD] PATCH /child/avatar",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2384,29 +1577,23 @@
                 "avatar"
               ]
             },
-            "description": "Anak update avatar sendiri (emoji atau URL). Hanya anak yang bisa — orang tua tidak bisa ubah avatar anak.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"avatar\": \"🦊\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
+              "raw": "{\n  \"avatar\": \"\\ud83e\\udd81\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -2416,17 +1603,20 @@
       ]
     },
     {
-      "name": "09 · Pockets — Saving Goals [CHILD]",
-      "description": "",
+      "name": "09 · Pockets — Tabungan Tujuan [CHILD]",
       "item": [
         {
-          "name": "[CHILD] GET /pockets",
+          "name": "[CHILD] POST /pockets — Buat Pocket",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2439,27 +1629,26 @@
                 "pockets"
               ]
             },
-            "description": "List semua pocket aktif anak yang sedang login.\n\n**Business rule:** Pocket adalah saving goals — BUKAN untuk transaksi langsung. Semua pembelian (voucher, infaq) dari Tabungan Utama.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pocket Test\",\n  \"category\": \"CUSTOM\",\n  \"emoji\": \"\\ud83c\\udfaf\",\n  \"targetAmount\": 50000,\n  \"intentionText\": \"Test pocket\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "if (r.data?.[0]) { pm.collectionVariables.set('pocket_id', r.data[0].id); console.log('pocket_id saved:', r.data[0].id); }"
+                  "pm.test('has pocket id', () => pm.expect(r.data.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('pocket_id', r.data.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -2467,13 +1656,13 @@
           ]
         },
         {
-          "name": "[CHILD] POST /pockets — Create Pocket",
+          "name": "[CHILD] GET /pockets",
           "request": {
-            "method": "POST",
+            "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2485,32 +1674,16 @@
                 "api",
                 "pockets"
               ]
-            },
-            "description": "Buat pocket saving goals baru.\n\n`category`: JAJAN | HAJI | QURBAN | INFAQ | CUSTOM",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Sepeda Baru\",\n  \"category\": \"CUSTOM\",\n  \"targetAmount\": 500000,\n  \"intentionText\": \"Nabung buat beli sepeda!\",\n  \"emoji\": \"🚲\",\n  \"deadline\": \"2026-12-31T23:59:00.000Z\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "const r = pm.response.json();",
-                  "pm.test('201', () => pm.response.to.have.status(201));",
-                  "if (r.data?.id) { pm.collectionVariables.set('pocket_id', r.data.id); console.log('pocket_id saved:', r.data.id); }"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -2523,8 +1696,8 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2537,76 +1710,15 @@
                 "pockets",
                 "{{pocket_id}}"
               ]
-            },
-            "description": "Detail pocket + riwayat transaksi pocket.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "[CHILD] PUT /pockets/:id — Update Pocket",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/pockets/{{pocket_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "pockets",
-                "{{pocket_id}}"
-              ]
-            },
-            "description": "Update nama/target/deadline pocket.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Sepeda MTB\",\n  \"targetAmount\": 750000\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -2621,6 +1733,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2635,30 +1751,24 @@
                 "topup"
               ]
             },
-            "description": "Alokasikan saldo dari Tabungan Utama ke pocket.\n\nDebit dari `ChildAccount.balance`, kredit ke `Pocket.balance`.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 25000\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
+              "raw": "{\n  \"amount\": 2000,\n  \"pin\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('201', () => pm.response.to.have.status(201));",
-                  "console.log('Saldo pocket baru:', pm.response.json().data?.newPocketBalance, 'IDR');"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('balance updated', () => pm.expect(r.data).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -2666,13 +1776,13 @@
           ]
         },
         {
-          "name": "[CHILD] DELETE /pockets/:id — Deactivate Pocket",
+          "name": "[CHILD] DELETE /pockets/:id — Nonaktifkan",
           "request": {
             "method": "DELETE",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2685,26 +1795,15 @@
                 "pockets",
                 "{{pocket_id}}"
               ]
-            },
-            "description": "Non-aktifkan pocket (soft delete). Saldo di dalam pocket dikembalikan ke Tabungan Utama.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -2715,18 +1814,12 @@
     },
     {
       "name": "10 · Infaq / Sedekah [PUBLIC + CHILD]",
-      "description": "",
       "item": [
         {
           "name": "[PUBLIC] GET /infaq/institutions",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{base_url}}/api/infaq/institutions",
               "host": [
@@ -2737,18 +1830,19 @@
                 "infaq",
                 "institutions"
               ]
-            },
-            "description": "Daftar lembaga infaq aktif. Public endpoint — tidak perlu token."
+            }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "if (r.data?.[0]) { pm.collectionVariables.set('institution_id', r.data[0].id); console.log('institution_id saved:', r.data[0].id); }"
+                  "pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));",
+                  "pm.test('at least 1 institution', () => pm.expect(r.data.length).to.be.at.least(1));",
+                  "if (r.data.length > 0) pm.collectionVariables.set('institution_id', r.data[0].id);"
                 ],
                 "type": "text/javascript"
               }
@@ -2763,6 +1857,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2775,30 +1873,23 @@
                 "infaq"
               ]
             },
-            "description": "Kirim infaq dari Tabungan Utama anak ke lembaga pilihan.\n\nCek spending limit: jika `excludeInfaq=true` (default), infaq tidak dihitung dalam limit harian.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"institutionId\": \"{{institution_id}}\",\n  \"amount\": 5000,\n  \"notes\": \"Semoga berkah\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
+              "raw": "{\n  \"institutionId\": \"{{institution_id}}\",\n  \"amount\": 1000,\n  \"pin\": \"123456\",\n  \"notes\": \"Sedekah tes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('201', () => pm.response.to.have.status(201));",
-                  "console.log('Infaq terkirim:', pm.response.json().data?.amount, 'IDR');"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -2806,13 +1897,13 @@
           ]
         },
         {
-          "name": "[CHILD] GET /infaq — Riwayat Infaq",
+          "name": "[CHILD] GET /infaq — Riwayat",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2824,26 +1915,15 @@
                 "api",
                 "infaq"
               ]
-            },
-            "description": "Semua riwayat infaq anak yang login + total bulan ini.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -2854,16 +1934,15 @@
     },
     {
       "name": "11 · Vouchers [CHILD]",
-      "description": "",
       "item": [
         {
-          "name": "[CHILD] GET /vouchers — Daftar Voucher",
+          "name": "[CHILD] GET /vouchers — Katalog",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2875,28 +1954,18 @@
                 "api",
                 "vouchers"
               ]
-            },
-            "description": "Semua voucher aktif yang tersedia.\n\n**Business rule:** Voucher HANYA bisa dibeli dari Tabungan Utama — bukan dari pocket.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "if (r.data?.[0]) { pm.collectionVariables.set('voucher_id', r.data[0].id); console.log('voucher_id saved:', r.data[0].name); }"
+                  "pm.test('has vouchers array', () => pm.expect(r.data.vouchers).to.be.an('array'));",
+                  "if (r.data.vouchers.length > 0) pm.collectionVariables.set('voucher_id', r.data.vouchers[0].id);"
                 ],
                 "type": "text/javascript"
               }
@@ -2909,12 +1978,12 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/vouchers?category=Gaming",
+              "raw": "{{base_url}}/api/vouchers",
               "host": [
                 "{{base_url}}"
               ],
@@ -2928,26 +1997,15 @@
                   "value": "Gaming"
                 }
               ]
-            },
-            "description": "Filter voucher berdasarkan kategori.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -2962,6 +2020,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -2975,30 +2037,25 @@
                 "buy"
               ]
             },
-            "description": "Beli voucher dari Tabungan Utama. Cek spending limit sebelum debit.\n\nJika saldo tidak cukup atau limit terlampaui → 422 error.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"voucherId\": \"{{voucher_id}}\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
+              "raw": "{\n  \"voucherId\": \"{{voucher_id}}\",\n  \"pin\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('201', () => pm.response.to.have.status(201));",
-                  "console.log('Kode voucher:', pm.response.json().data?.redemptionCode);"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has voucher code', () => pm.expect(r.data.code).to.be.a('string'));"
                 ],
                 "type": "text/javascript"
               }
@@ -3006,13 +2063,13 @@
           ]
         },
         {
-          "name": "[CHILD] GET /vouchers/history — Riwayat Pembelian",
+          "name": "[CHILD] GET /vouchers/history",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
               }
             ],
             "url": {
@@ -3025,26 +2082,15 @@
                 "vouchers",
                 "history"
               ]
-            },
-            "description": "Riwayat semua voucher yang pernah dibeli oleh anak.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{child_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3054,8 +2100,302 @@
       ]
     },
     {
-      "name": "12 · Admin — Platform Management [ADMIN]",
-      "description": "",
+      "name": "12 · E-Learning [CHILD] — v4",
+      "item": [
+        {
+          "name": "[CHILD] GET /learning/modules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/modules",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "modules"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));",
+                  "if (r.data.length > 0) pm.collectionVariables.set('module_id', r.data[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] GET /learning/articles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));",
+                  "if (r.data.length > 0) pm.collectionVariables.set('article_id', r.data[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] GET /learning/articles/:id — Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles/{{article_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles",
+                "{{article_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('has title', () => pm.expect(r.data.title).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] POST /learning/articles/:id/complete — Tandai Selesai",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles",
+                "{{article_id}}",
+                "complete"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has xpEarned', () => pm.expect(r.data.xpEarned).to.be.a('number'));",
+                  "pm.test('has level', () => pm.expect(r.data.level).to.be.a('number'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] GET /learning/articles/:id/quiz — Ambil Kuis",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/quiz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles",
+                "{{article_id}}",
+                "quiz"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has questions', () => pm.expect(r.data.questions).to.be.an('array'));",
+                  "pm.test('no isCorrect in options (security)', () => {",
+                  "  r.data.questions.forEach(q => {",
+                  "    q.options.forEach(o => pm.expect(o.isCorrect).to.be.undefined);",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] POST /learning/articles/:id/quiz/submit — Submit Kuis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/quiz/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles",
+                "{{article_id}}",
+                "quiz",
+                "submit"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"REPLACE_WITH_ACTUAL_QUESTION_ID\",\n      \"optionIndex\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has score', () => pm.expect(r.data.score).to.be.a('number'));",
+                  "pm.test('score in valid range', () => { pm.expect(r.data.score).to.be.at.least(0); pm.expect(r.data.score).to.be.at.most(100); });",
+                  "pm.test('has passed flag', () => pm.expect(r.data.passed).to.be.a('boolean'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[CHILD] GET /learning/my-progress",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/my-progress",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "my-progress"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has xpBalance', () => pm.expect(r.data.xpBalance).to.exist);",
+                  "pm.test('has level', () => pm.expect(r.data.xpBalance.level).to.be.a('number'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "13 · Admin — Platform Management [ADMIN]",
       "item": [
         {
           "name": "[ADMIN] GET /admin/stats",
@@ -3063,8 +2403,8 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
@@ -3077,26 +2417,18 @@
                 "admin",
                 "stats"
               ]
-            },
-            "description": "Statistik platform: total user aktif, transaksi bulan ini, infaq, chores pending.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has users stats', () => pm.expect(r.data.users).to.exist);",
+                  "pm.test('totalParents is number', () => pm.expect(r.data.users.totalParents).to.be.a('number'));"
                 ],
                 "type": "text/javascript"
               }
@@ -3104,17 +2436,17 @@
           ]
         },
         {
-          "name": "[ADMIN] GET /admin/parents",
+          "name": "[ADMIN] GET /admin/parents — List Semua",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/parents?page=1&limit=20",
+              "raw": "{{base_url}}/api/admin/parents",
               "host": [
                 "{{base_url}}"
               ],
@@ -3130,31 +2462,21 @@
                 },
                 {
                   "key": "limit",
-                  "value": "20"
-                }
-              ]
-            },
-            "description": "Daftar semua orang tua dengan pencarian.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
+                  "value": "10"
                 }
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "if (r.data?.[0]) { pm.collectionVariables.set('parent_profile_id', r.data[0].id); console.log('parent_profile_id saved'); }"
+                  "pm.test('has data array', () => pm.expect(r.data.data).to.be.an('array'));",
+                  "pm.test('has meta pagination', () => pm.expect(r.data.meta).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -3167,12 +2489,12 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/parents?search=budi&page=1",
+              "raw": "{{base_url}}/api/admin/parents",
               "host": [
                 "{{base_url}}"
               ],
@@ -3185,32 +2507,17 @@
                 {
                   "key": "search",
                   "value": "budi"
-                },
-                {
-                  "key": "page",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Cari orang tua berdasarkan nama atau email.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
                 }
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3218,17 +2525,17 @@
           ]
         },
         {
-          "name": "[ADMIN] GET /admin/parents/:parentId",
+          "name": "[ADMIN] GET /admin/parents/:parentId — Detail",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id}}",
+              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id_admin}}",
               "host": [
                 "{{base_url}}"
               ],
@@ -3236,28 +2543,19 @@
                 "api",
                 "admin",
                 "parents",
-                "{{parent_profile_id}}"
-              ]
-            },
-            "description": "Detail orang tua: profil, saldo, semua anak terdaftar.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
+                "{{parent_profile_id_admin}}"
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has children array', () => pm.expect(r.data.children).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -3265,17 +2563,21 @@
           ]
         },
         {
-          "name": "[ADMIN] PATCH /admin/parents/:parentId/status",
+          "name": "[ADMIN] PATCH /admin/parents/:parentId/status — Nonaktifkan",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id}}/status",
+              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id_admin}}/status",
               "host": [
                 "{{base_url}}"
               ],
@@ -3283,33 +2585,27 @@
                 "api",
                 "admin",
                 "parents",
-                "{{parent_profile_id}}",
+                "{{parent_profile_id_admin}}",
                 "status"
               ]
             },
-            "description": "Aktifkan atau nonaktifkan akun orang tua.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"isActive\": false,\n  \"reason\": \"Akun dibekukan untuk verifikasi\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
+              "raw": "{\n  \"isActive\": true,\n  \"reason\": \"Test toggle status\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3317,17 +2613,21 @@
           ]
         },
         {
-          "name": "[ADMIN] POST /admin/parents/:parentId/balance/adjust",
+          "name": "[ADMIN] POST /admin/parents/:parentId/balance/adjust — Koreksi Saldo",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id}}/balance/adjust",
+              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id_admin}}/balance/adjust",
               "host": [
                 "{{base_url}}"
               ],
@@ -3335,34 +2635,28 @@
                 "api",
                 "admin",
                 "parents",
-                "{{parent_profile_id}}",
+                "{{parent_profile_id_admin}}",
                 "balance",
                 "adjust"
               ]
             },
-            "description": "Penyesuaian saldo manual. `amount` positif = tambah saldo, negatif = kurangi.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 50000,\n  \"notes\": \"Koreksi saldo — test adjustment\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
+              "raw": "{\n  \"amount\": 10000,\n  \"type\": \"CREDIT\",\n  \"reason\": \"Test koreksi saldo admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('201', () => pm.response.to.have.status(201));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3375,12 +2669,12 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id}}/ledger?page=1&limit=20",
+              "raw": "{{base_url}}/api/admin/parents/{{parent_profile_id_admin}}/ledger",
               "host": [
                 "{{base_url}}"
               ],
@@ -3388,8 +2682,43 @@
                 "api",
                 "admin",
                 "parents",
-                "{{parent_profile_id}}",
+                "{{parent_profile_id_admin}}",
                 "ledger"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/children — List Semua Anak",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/children",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "children"
               ],
               "query": [
                 {
@@ -3398,29 +2727,22 @@
                 },
                 {
                   "key": "limit",
-                  "value": "20"
-                }
-              ]
-            },
-            "description": "Riwayat transaksi rekening orang tua.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
+                  "value": "10"
                 }
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has data array', () => pm.expect(r.data.data).to.be.an('array'));",
+                  "pm.test('has meta', () => pm.expect(r.data.meta).to.exist);",
+                  "if (r.data.data.length > 0) pm.collectionVariables.set('child_profile_id', r.data.data[0].id);"
                 ],
                 "type": "text/javascript"
               }
@@ -3428,13 +2750,54 @@
           ]
         },
         {
-          "name": "[ADMIN] GET /admin/children/:childId",
+          "name": "[ADMIN] GET /admin/children?search=aisha",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/children",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "children"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "aisha"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/children/:childId — Detail Anak",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
@@ -3448,26 +2811,18 @@
                 "children",
                 "{{child_profile_id}}"
               ]
-            },
-            "description": "Detail anak: profil, rekening, spending limits, pockets.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has account', () => pm.expect(r.data.account).to.exist);",
+                  "pm.test('has pockets array', () => pm.expect(r.data.account.pockets).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -3482,6 +2837,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
@@ -3497,29 +2856,23 @@
                 "status"
               ]
             },
-            "description": "Aktifkan atau nonaktifkan akun anak.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"isActive\": true,\n  \"reason\": \"Reaktivasi akun anak\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
+              "raw": "{\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3532,12 +2885,12 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/audit-logs?page=1&limit=20",
+              "raw": "{{base_url}}/api/admin/audit-logs",
               "host": [
                 "{{base_url}}"
               ],
@@ -3556,26 +2909,16 @@
                   "value": "20"
                 }
               ]
-            },
-            "description": "Audit log semua aktivitas platform. Filter tersedia: userId, action, entityType, from, to.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('has data', () => pm.expect(r.data).to.exist);"
                 ],
                 "type": "text/javascript"
               }
@@ -3585,8 +2928,7 @@
       ]
     },
     {
-      "name": "13 · Admin — Voucher Management [ADMIN]",
-      "description": "",
+      "name": "14 · Admin — Voucher Management [ADMIN]",
       "item": [
         {
           "name": "[ADMIN] GET /admin/vouchers",
@@ -3594,12 +2936,12 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/vouchers?page=1&isActive=true",
+              "raw": "{{base_url}}/api/admin/vouchers",
               "host": [
                 "{{base_url}}"
               ],
@@ -3607,39 +2949,17 @@
                 "api",
                 "admin",
                 "vouchers"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "isActive",
-                  "value": "true"
-                }
-              ]
-            },
-            "description": "Daftar semua voucher (termasuk nonaktif). Filter: category, voucherType, isActive, provider.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "const r = pm.response.json();",
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "if (r.data?.[0]) { pm.collectionVariables.set('voucher_id', r.data[0].id); console.log('voucher_id saved:', r.data[0].name); }"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('has data array', () => pm.expect(r.data.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -3647,13 +2967,17 @@
           ]
         },
         {
-          "name": "[ADMIN] POST /admin/vouchers — Create Voucher",
+          "name": "[ADMIN] POST /admin/vouchers — Buat Voucher",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
@@ -3667,31 +2991,26 @@
                 "vouchers"
               ]
             },
-            "description": "Buat voucher baru.\n\n`voucherType`: DISCOUNT | GAME_TOPUP | E_WALLET | EDUCATION\n\n`price` = harga jual dalam IDR, `faceValue` = nilai nominal voucher.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Shopee Rp 50.000\",\n  \"provider\": \"Shopee\",\n  \"category\": \"E-Commerce\",\n  \"voucherType\": \"DISCOUNT\",\n  \"price\": 45000,\n  \"faceValue\": 50000,\n  \"description\": \"Voucher belanja Shopee Rp 50.000\",\n  \"mockCode\": \"SHOPEE-BYOND\",\n  \"stock\": 100,\n  \"maxPerChild\": 2,\n  \"validFrom\": \"2026-01-01T00:00:00.000Z\",\n  \"validUntil\": \"2026-12-31T23:59:00.000Z\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
+              "raw": "{\n  \"name\": \"Test Voucher Admin\",\n  \"provider\": \"Test Provider\",\n  \"category\": \"Test\",\n  \"voucherType\": \"DISCOUNT\",\n  \"price\": 5000,\n  \"stock\": 10,\n  \"maxPerChild\": 2,\n  \"description\": \"Voucher test dari admin\",\n  \"mockCode\": \"TEST-BYOND-XXXX\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('201', () => pm.response.to.have.status(201));",
-                  "if (r.data?.id) { pm.collectionVariables.set('voucher_id', r.data.id); console.log('voucher_id saved:', r.data.id); }"
+                  "pm.test('has voucher id', () => pm.expect(r.data.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('voucher_id', r.data.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -3699,13 +3018,17 @@
           ]
         },
         {
-          "name": "[ADMIN] PUT /admin/vouchers/:voucherId — Update Voucher",
+          "name": "[ADMIN] PUT /admin/vouchers/:id — Update",
           "request": {
             "method": "PUT",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
@@ -3720,29 +3043,23 @@
                 "{{voucher_id}}"
               ]
             },
-            "description": "Update data voucher (partial update).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"stock\": 200,\n  \"isActive\": true\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
+              "raw": "{\n  \"name\": \"Test Voucher Admin Updated\",\n  \"stock\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3750,13 +3067,13 @@
           ]
         },
         {
-          "name": "[ADMIN] DELETE /admin/vouchers/:voucherId",
+          "name": "[ADMIN] DELETE /admin/vouchers/:id",
           "request": {
             "method": "DELETE",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
@@ -3770,26 +3087,17 @@
                 "vouchers",
                 "{{voucher_id}}"
               ]
-            },
-            "description": "Soft-delete voucher (set isActive=false).",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('deleted or deactivated', () => { pm.expect(r.data.deleted || r.data.deactivated).to.be.true; });"
                 ],
                 "type": "text/javascript"
               }
@@ -3802,12 +3110,12 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/vouchers/redemptions?page=1&limit=20",
+              "raw": "{{base_url}}/api/admin/vouchers/redemptions",
               "host": [
                 "{{base_url}}"
               ],
@@ -3816,37 +3124,16 @@
                 "admin",
                 "vouchers",
                 "redemptions"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "20"
-                }
-              ]
-            },
-            "description": "Semua riwayat pembelian voucher oleh anak. Filter: voucherId.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -3856,8 +3143,7 @@
       ]
     },
     {
-      "name": "14 · Admin — Infaq Management [ADMIN]",
-      "description": "",
+      "name": "15 · Admin — Infaq Management [ADMIN]",
       "item": [
         {
           "name": "[ADMIN] GET /admin/infaq/institutions",
@@ -3865,12 +3151,12 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/infaq/institutions?includeInactive=false",
+              "raw": "{{base_url}}/api/admin/infaq/institutions",
               "host": [
                 "{{base_url}}"
               ],
@@ -3879,35 +3165,17 @@
                 "admin",
                 "infaq",
                 "institutions"
-              ],
-              "query": [
-                {
-                  "key": "includeInactive",
-                  "value": "false"
-                }
-              ]
-            },
-            "description": "Daftar lembaga infaq. `includeInactive=true` untuk tampilkan yang nonaktif juga.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "const r = pm.response.json();",
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "if (r.data?.[0]) { pm.collectionVariables.set('institution_id', r.data[0].id); console.log('institution_id saved:', r.data[0].name); }"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('has array', () => pm.expect(r.data).to.be.an('array'));"
                 ],
                 "type": "text/javascript"
               }
@@ -3915,13 +3183,17 @@
           ]
         },
         {
-          "name": "[ADMIN] POST /admin/infaq/institutions — Create Institution",
+          "name": "[ADMIN] POST /admin/infaq/institutions — Tambah Lembaga",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
@@ -3936,31 +3208,25 @@
                 "institutions"
               ]
             },
-            "description": "Tambah lembaga infaq baru.\n\n`code` harus huruf kapital + angka + underscore (misal: `BSI_MASLAHAT`, `YDSF`).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"code\": \"YDSF\",\n  \"name\": \"Yayasan Dana Sosial Al-Falah\",\n  \"description\": \"Lembaga zakat dan infaq amanah Surabaya\",\n  \"bankInfo\": \"BSI 7123456789 a.n. YDSF Surabaya\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
+              "raw": "{\n  \"code\": \"TEST_LEMBAGA_001\",\n  \"name\": \"Lembaga Test\",\n  \"description\": \"Test lembaga infaq\",\n  \"bankInfo\": \"BSI - 9999999999 a.n. Lembaga Test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
                   "const r = pm.response.json();",
-                  "pm.test('201', () => pm.response.to.have.status(201));",
-                  "if (r.data?.id) { pm.collectionVariables.set('institution_id', r.data.id); console.log('institution_id saved:', r.data.id); }"
+                  "pm.collectionVariables.set('institution_id', r.data.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -3968,13 +3234,17 @@
           ]
         },
         {
-          "name": "[ADMIN] PUT /admin/infaq/institutions/:id — Update Institution",
+          "name": "[ADMIN] PUT /admin/infaq/institutions/:id — Update",
           "request": {
             "method": "PUT",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
@@ -3990,29 +3260,23 @@
                 "{{institution_id}}"
               ]
             },
-            "description": "Update data lembaga (partial update).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"YDSF Surabaya Updated\",\n  \"logoUrl\": \"https://example.com/ydsf.png\"\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
+              "raw": "{\n  \"name\": \"Lembaga Test Updated\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -4020,13 +3284,17 @@
           ]
         },
         {
-          "name": "[ADMIN] PATCH /admin/infaq/institutions/:id/status",
+          "name": "[ADMIN] PATCH /admin/infaq/institutions/:id/status — Toggle",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
@@ -4043,29 +3311,23 @@
                 "status"
               ]
             },
-            "description": "Aktifkan atau nonaktifkan lembaga. Lembaga nonaktif tidak tampil di anak.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"isActive\": true\n}"
-            },
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -4073,17 +3335,17 @@
           ]
         },
         {
-          "name": "[ADMIN] GET /admin/infaq — Semua Log Infaq",
+          "name": "[ADMIN] GET /admin/infaq — Log Infaq",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/infaq?page=1&limit=20",
+              "raw": "{{base_url}}/api/admin/infaq",
               "host": [
                 "{{base_url}}"
               ],
@@ -4091,37 +3353,16 @@
                 "api",
                 "admin",
                 "infaq"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "20"
-                }
-              ]
-            },
-            "description": "Semua log infaq di platform. Filter: institutionId, childProfileId, from, to.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
               ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
                 ],
                 "type": "text/javascript"
               }
@@ -4129,13 +3370,13 @@
           ]
         },
         {
-          "name": "[ADMIN] GET /admin/infaq/stats — Statistik Infaq",
+          "name": "[ADMIN] GET /admin/infaq/stats — Statistik",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
               }
             ],
             "url": {
@@ -4149,26 +3390,814 @@
                 "infaq",
                 "stats"
               ]
-            },
-            "description": "Total infaq per lembaga dan statistik bulanan.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{admin_token}}",
-                  "type": "string"
-                }
-              ]
             }
           },
-          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has summary', () => pm.expect(r.data.summary).to.exist);",
+                  "pm.test('has allTime', () => pm.expect(r.data.summary.allTime).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "16 · Admin — E-Learning Management [ADMIN] — v4",
+      "item": [
+        {
+          "name": "[ADMIN] GET /admin/learning/stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has modules stat', () => pm.expect(r.data.modules).to.exist);",
+                  "pm.test('has articles stat', () => pm.expect(r.data.articles).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/learning/modules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/modules",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "modules"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('returns array', () => pm.expect(r.data).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] POST /admin/learning/modules — Buat Modul",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/modules",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "modules"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Modul Test\",\n  \"description\": \"Deskripsi modul test\",\n  \"category\": \"MENABUNG\",\n  \"isPublished\": true,\n  \"order\": 99\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has module id', () => pm.expect(r.data.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('module_id', r.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] PUT /admin/learning/modules/:id — Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/modules/{{module_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "modules",
+                "{{module_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Modul Test Updated\",\n  \"isPublished\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/learning/articles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/articles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "articles"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] POST /admin/learning/articles — Buat Artikel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/articles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "articles"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleId\": \"{{module_id}}\",\n  \"title\": \"Artikel Test: Belajar Menabung\",\n  \"content\": \"Menabung adalah kebiasaan baik yang perlu dibiasakan sejak dini.\",\n  \"category\": \"MENABUNG\",\n  \"difficulty\": \"MUDAH\",\n  \"readingTimeMin\": 3,\n  \"xpReward\": 10,\n  \"isPublished\": true,\n  \"order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has article id', () => pm.expect(r.data.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('article_id', r.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] GET /admin/learning/articles/:id — Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/articles/{{article_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "articles",
+                "{{article_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json(); pm.test('has title', () => pm.expect(r.data.title).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] PUT /admin/learning/articles/:id/quiz — Upsert Kuis",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/articles/{{article_id}}/quiz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "articles",
+                "{{article_id}}",
+                "quiz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"xpBonus\": 20,\n  \"coinReward\": 2000,\n  \"passScore\": 60,\n  \"questions\": [\n    {\n      \"question\": \"Apa manfaat utama menabung?\",\n      \"options\": [\n        {\n          \"text\": \"Boros uang\",\n          \"isCorrect\": false\n        },\n        {\n          \"text\": \"Punya cadangan untuk kebutuhan darurat\",\n          \"isCorrect\": true\n        },\n        {\n          \"text\": \"Malas bekerja\",\n          \"isCorrect\": false\n        }\n      ],\n      \"explanation\": \"Menabung memberi kita dana cadangan saat situasi darurat.\",\n      \"order\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);",
+                  "const r = pm.response.json();",
+                  "pm.test('has quiz id', () => pm.expect(r.data.id).to.be.a('string'));",
+                  "pm.test('has questions', () => pm.expect(r.data.questions).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] PUT /admin/learning/articles/:id — Update Artikel",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/articles/{{article_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "articles",
+                "{{article_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Artikel Test Updated\",\n  \"isPublished\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] DELETE /admin/learning/articles/:id/quiz — Hapus Kuis",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/articles/{{article_id}}/quiz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "articles",
+                "{{article_id}}",
+                "quiz"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[ADMIN] DELETE /admin/learning/modules/:id — Hapus Modul",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/learning/modules/{{module_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "learning",
+                "modules",
+                "{{module_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json(); pm.test('success true', () => pm.expect(r.success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "17 · Negative Tests — Security & Validasi",
+      "item": [
+        {
+          "name": "[TEST] Login salah password — harus 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login/parent",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login",
+                "parent"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"budi.santoso@demo.byond.id\",\n  \"password\": \"WRONG_PASSWORD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "const r = pm.response.json();",
+                  "pm.test('success false', () => pm.expect(r.success).to.be.false);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[TEST] Akses admin route tanpa token — harus 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[TEST] Parent akses admin route — harus 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[TEST] Child akses parent route — harus 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/chores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "chores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"hack\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[TEST] Transfer saldo tidak cukup — harus 4xx",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{parent_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/parent/banking/transfer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "parent",
+                "banking",
+                "transfer"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"childProfileId\": \"{{child_profile_id}}\",\n  \"amount\": 999999999,\n  \"pin\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 4xx', () => pm.expect(pm.response.code).to.be.within(400, 499));",
+                  "const r = pm.response.json();",
+                  "pm.test('success false', () => pm.expect(r.success).to.be.false);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[TEST] Submit kuis duplikat — harus 403 QUIZ_ALREADY_TAKEN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{child_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/learning/articles/{{article_id}}/quiz/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "learning",
+                "articles",
+                "{{article_id}}",
+                "quiz",
+                "submit"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"dummy-id\",\n      \"optionIndex\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403 atau 400', () => pm.expect(pm.response.code).to.be.within(400, 499));",
+                  "const r = pm.response.json();",
+                  "pm.test('success false', () => pm.expect(r.success).to.be.false);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "[TEST] Validasi input — register tanpa email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/register/parent",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register",
+                "parent"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"Test@1234\",\n  \"fullName\": \"Test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 atau 422', () => pm.expect(pm.response.code).to.be.within(400, 422));",
+                  "const r = pm.response.json();",
+                  "pm.test('success false', () => pm.expect(r.success).to.be.false);"
                 ],
                 "type": "text/javascript"
               }

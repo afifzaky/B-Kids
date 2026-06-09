@@ -42,7 +42,25 @@ export async function deleteChore(req: AuthenticatedRequest, res: Response, next
 
 export async function submitChore(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const input = submitChoreSchema.parse(req.body);
+    const file = (req as AuthenticatedRequest & { file?: Express.Multer.File }).file;
+
+    // Coba upload file jika ada — gagal tidak membatalkan submission (foto opsional)
+    let mediaUrl: string | undefined = typeof req.body.mediaUrl === 'string' ? req.body.mediaUrl : undefined;
+    if (file) {
+      try {
+        mediaUrl = await uploadChoreEvidence(
+          req.user.profileId,
+          req.params.id,
+          file.buffer,
+          file.mimetype,
+          Date.now(),
+        );
+      } catch (uploadErr) {
+        console.error('[submitChore] Upload foto gagal, lanjut tanpa foto:', uploadErr);
+      }
+    }
+
+    const input = submitChoreSchema.parse({ notes: req.body.notes, mediaUrl });
     const data = await ChoresService.submitChore(req.params.id, req.user.profileId, input);
     res.json({ success: true, message: data.message });
   } catch (error) { next(error); }

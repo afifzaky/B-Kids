@@ -96,17 +96,27 @@ async function main() {
   // 0. SUPER ADMIN
   // =============================================
   const adminPasswordHash = await bcrypt.hash('Admin@Byond2026!', SALT_ROUNDS);
+  const admin2PasswordHash = await bcrypt.hash('DevAdmin@2026!', SALT_ROUNDS);
 
-  await prisma.user.create({
-    data: {
-      email: 'admin@byond.id',
-      passwordHash: adminPasswordHash,
-      role: 'SUPER_ADMIN',
-      isActive: true,
-    },
+  await prisma.user.createMany({
+    data: [
+      {
+        email: 'admin@byond.id',
+        passwordHash: adminPasswordHash,
+        role: 'SUPER_ADMIN',
+        isActive: true,
+      },
+      {
+        email: 'dev.admin@byond.id',
+        passwordHash: admin2PasswordHash,
+        role: 'SUPER_ADMIN',
+        isActive: true,
+      },
+    ],
   });
 
-  console.log('✅ Super Admin: admin@byond.id (Password: Admin@Byond2026!)');
+  console.log('✅ Super Admin 1: admin@byond.id (Password: Admin@Byond2026!)');
+  console.log('✅ Super Admin 2: dev.admin@byond.id (Password: DevAdmin@2026!)');
 
   // =============================================
   // 1. ORANG TUA — Budi Santoso
@@ -512,9 +522,13 @@ async function main() {
 ║          SEED SELESAI — Data Demo            ║
 ╠══════════════════════════════════════════════╣
 ║                                              ║
-║  🔐 SUPER ADMIN                              ║
+║  🔐 SUPER ADMIN 1                            ║
 ║     Email   : admin@byond.id                 ║
 ║     Password: Admin@Byond2026!               ║
+║                                              ║
+║  🔐 SUPER ADMIN 2 (Dev)                      ║
+║     Email   : dev.admin@byond.id             ║
+║     Password: DevAdmin@2026!                 ║
 ║                                              ║
 ║  👨 ORANG TUA — Budi Santoso                 ║
 ║     Email      : budi.santoso@demo.byond.id  ║
