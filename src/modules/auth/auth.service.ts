@@ -176,8 +176,8 @@ export async function registerParent(input: RegisterParentInput) {
 // Brute-force helpers
 // =============================================
 
-const MAX_ATTEMPTS = 5;
-const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 menit
+const MAX_ATTEMPTS = 10;
+const LOCK_DURATION_MS = 5 * 60 * 1000; // 5 menit
 
 async function checkAndHandleLock(userId: string): Promise<void> {
   const user = await prisma.user.findUnique({
@@ -245,7 +245,7 @@ export async function loginParent(input: LoginParentInput) {
     throw new AuthError(
       remaining > 0
         ? `Email atau password salah. ${remaining} percobaan tersisa sebelum akun dikunci.`
-        : 'Email atau password salah. Akun dikunci 15 menit.',
+        : 'Email atau password salah. Akun dikunci 5 menit.',
     );
   }
 
@@ -422,7 +422,7 @@ export async function loginChild(input: LoginChildInput) {
     throw new AuthError(
       remaining > 0
         ? `Username, password, atau PIN salah. ${remaining} percobaan tersisa.`
-        : 'Terlalu banyak percobaan. Akun dikunci 15 menit.',
+        : 'Terlalu banyak percobaan. Akun dikunci 5 menit.',
     );
   }
 
